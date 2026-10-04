@@ -1,0 +1,96 @@
+const router = require('express').Router();
+const bcrypt = require('bcryptjs');
+const db = require('../db');
+const cfg = require('../config');
+const { auth, role } = require('../middleware');
+
+router.use(auth, role('admin'));
+
+const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+const clean = (s) => String(s || '').trim();
+const fee = () => Number(db.prepare("SELECT value FROM settings WHERE key='contrast_fee'").get().value);
+
+function createUser(res, r, { name, email, password, specialty }) {
+  name = clean(name); email = clean(email); password = String(password || '');
+  if (!name || !isEmail(email) || password.length < 8) {
+    return res.status(400).json({ error: 'الاسم والبريد مطلوبان، وكلمة المرور 8 أحرف على الأقل' });
+  }
+  if (r === 'doctor' && !cfg.SPECIALTIES.includes(specialty)) return res.status(400).json({ error: 'اختصاص غير صالح' });
+  if (db.prepare('SELECT 1 FROM users WHERE email=?').get(email)) return res.status(409).json({ error: 'هذا البريد مستخدم من قبل' });
+  const id = db.transaction(() => {
+    const id = db.prepare('INSERT INTO users(role,name,email,password_hash,specialty) VALUES(?,?,?,?,?)')
+      .run(r, name, email, bcrypt.hashSync(password, 10), r === 'doctor' ? specialty : null).lastInsertRowid;
+    if (r === 'center') {
+      const ins = db.prepare('INSERT INTO prices(center_id,modality,price) VALUES(?,?,?)');
+      for (const m of cfg.MODALITIES) ins.run(id, m, cfg.DEFAULT_PRICES[m]);
+    }
+    return id;
+  })();
+  res.status(201).json({ id });
+}
+
+// ---- المراكز ----
+router.get('/centers', (req, res) => {
+  const rows = db.prepare("SELECT id,name,email,active FROM users WHERE role='center' ORDER BY id").all();
+  const pr = db.prepare('SELECT modality,price FROM prices WHERE center_id=?');
+  res.json(rows.map((c) => ({ ...c, prices: Object.fromEntries(pr.all(c.id).map((p) => [p.modality, p.price])) })));
+});
+router.post('/centers', (req, res) => createUser(res, 'center', req.body || {}));
+router.put('/centers/:id/prices', (req, res) => {
+  const id = Number(req.params.id);
+  if (!db.prepare("SELECT 1 FROM users WHERE id=? AND role='center'").get(id)) return res.status(404).json({ error: 'المركز غير موجود' });
+  const body = req.body || {};
+  for (const m of Object.keys(body)) {
+    if (!cfg.MODALITIES.includes(m) || !Number.isInteger(body[m]) || body[m] < 0) return res.status(400).json({ error: 'سعر غير صالح: ' + m });
+  }
+  const up = db.prepare('INSERT INTO prices(center_id,modality,price) VALUES(?,?,?) ON CONFLICT(center_id,modality) DO UPDATE SET price=excluded.price');
+  db.transaction(() => { for (const m of Object.keys(body)) up.run(id, m, body[m]); })();
+  res.json({ ok: true });
+});
+
+// ---- الأطباء ----
+router.get('/doctors', (req, res) =>
+  res.json(db.prepare("SELECT id,name,email,specialty,active FROM users WHERE role='doctor' ORDER BY id").all()));
+router.post('/doctors', (req, res) => createUser(res, 'doctor', req.body || {}));
+
+// ---- تعطيل حساب أو تغيير كلمة المرور ----
+router.patch('/users/:id', (req, res) => {
+  const id = Number(req.params.id);
+  if (!db.prepare("SELECT 1 FROM users WHERE id=? AND role IN ('center','doctor')").get(id)) return res.status(404).json({ error: 'الحساب غير موجود' });
+  const { active, password } = req.body || {};
+  if (password !== undefined && String(password).length < 8) return res.status(400).json({ error: 'كلمة المرور 8 أحرف على الأقل' });
+  if (active !== undefined) db.prepare('UPDATE users SET active=? WHERE id=?').run(active ? 1 : 0, id);
+  if (password !== undefined) db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(bcrypt.hashSync(String(password), 10), id);
+  res.json({ ok: true });
+});
+
+// ---- الإعدادات ----
+router.get('/settings', (req, res) => res.json({ contrast_fee: fee() }));
+router.put('/settings', (req, res) => {
+  const v = (req.body || {}).contrast_fee;
+  if (!Number.isInteger(v) || v < 0) return res.status(400).json({ error: 'قيمة غير صالحة' });
+  db.prepare("UPDATE settings SET value=? WHERE key='contrast_fee'").run(String(v));
+  res.json({ ok: true });
+});
+
+// ---- الجرد الشهري: /api/admin/statement?month=2026-10 ----
+router.get('/statement', (req, res) => {
+  const month = clean(req.query.month) || new Date().toISOString().slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'الشهر بصيغة YYYY-MM' });
+  const centers = db.prepare("SELECT id,name FROM users WHERE role='center' ORDER BY id").all();
+  const rows = db.prepare('SELECT center_id,modality,contrast,protocol,exam_names,price FROM exams WHERE status>=4 AND substr(reported_at,1,7)=?').all(month);
+  const out = centers.map((c) => {
+    const s = { center_id: c.id, center: c.name, cases: 0, exams: 0, by_modality: {}, no_contrast: 0, with_contrast: 0, angiography: 0, oncology: 0, total: 0 };
+    for (const r of rows.filter((x) => x.center_id === c.id)) {
+      s.cases++; s.exams += JSON.parse(r.exam_names).length; s.total += r.price || 0;
+      s.by_modality[r.modality] = (s.by_modality[r.modality] || 0) + 1;
+      if (r.contrast === 'N') s.no_contrast++; else s.with_contrast++;
+      if (r.protocol === 'Angiography') s.angiography++;
+      if (r.protocol === 'Oncology/Staging') s.oncology++;
+    }
+    return s;
+  });
+  res.json({ month, centers: out, grand_total: out.reduce((a, s) => a + s.total, 0) });
+});
+
+module.exports = router;
