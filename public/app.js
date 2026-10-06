@@ -661,9 +661,10 @@ else if (D.rp) { S.open = S.open === +D.rp ? null : +D.rp; R(); }
 document.addEventListener('change', (ev) => {
   const t = ev.target;
   if (t.id === 'caseFilter') {
-  S.caseFilter = t.value;
+  const newFilter = t.value;
+  S.caseFilter = newFilter;
 
-  if (t.value !== 'date') {
+  if (newFilter !== 'date') {
     S.caseDate = '';
   }
 
