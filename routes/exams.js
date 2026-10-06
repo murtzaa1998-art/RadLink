@@ -78,12 +78,74 @@ router.get('/', (req, res) => {
   res.json(rows.map((e) => view(e, 'center')));
 });
 
-router.get('/:id', (req, res) => {
+router.get('/:id', (req, res, next) => {
+  if (!/^\d+$/.test(req.params.id)) return next();
   const e = db.prepare('SELECT * FROM exams WHERE id=? AND center_id=?').get(Number(req.params.id), req.user.id);
   if (!e) return res.status(404).json({ error: 'الحالة غير موجودة' });
   res.json(view(e, 'center'));
 });
+// الجرد الشهري للمركز/المستشفى نفسه فقط
+router.get('/statement', (req, res) => {
+  const month = String(
+    req.query.month || new Date().toISOString().slice(0, 7)
+  ).trim();
 
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    return res.status(400).json({ error: 'الشهر غير صالح' });
+  }
+
+  const rows = db.prepare(`
+    SELECT modality, contrast, protocol, exam_names, price
+    FROM exams
+    WHERE center_id=?
+      AND status>=4
+      AND substr(reported_at,1,7)=?
+  `).all(req.user.id, month);
+
+  const statement = {
+    month,
+    cases: 0,
+    exams: 0,
+    by_modality: {},
+    no_contrast: 0,
+    with_contrast: 0,
+    angiography: 0,
+    oncology: 0,
+    total: 0
+  };
+
+  for (const r of rows) {
+    statement.cases++;
+
+    let examNames = [];
+    try {
+      examNames = JSON.parse(r.exam_names || '[]');
+    } catch (_) {}
+
+    statement.exams += Array.isArray(examNames) ? examNames.length : 0;
+
+    statement.by_modality[r.modality] =
+      (statement.by_modality[r.modality] || 0) + 1;
+
+    if (r.contrast === 'N') {
+      statement.no_contrast++;
+    } else {
+      statement.with_contrast++;
+    }
+
+    if (r.protocol === 'Angiography') {
+      statement.angiography++;
+    }
+
+        if (r.protocol === 'Oncology' || r.protocol === 'Oncology/Staging') {
+      statement.oncology++;
+    }
+
+    statement.total += Number(r.price || 0);
+  }
+
+  res.json(statement);
+});
 // تأكيد تسليم التقرير للمريض
 router.post('/:id/deliver', (req, res) => {
   const r = db.prepare("UPDATE exams SET status=5, delivered_at=datetime('now') WHERE id=? AND center_id=? AND status=4")
