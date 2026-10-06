@@ -176,7 +176,7 @@ if (filter === 'year') {
 
   return d >= start && d <= end;
 }
-}
+
 
     if (filter === 'date' && selectedDate) {
       const y = d.getFullYear();
@@ -217,7 +217,7 @@ if (filter === 'year') {
     <div class="card">
       <h2>فحوصاتي</h2>
 
-      <div class="g" style="grid-template-columns:minmax(260px,2fr) minmax(180px,1fr) minmax(180px,1fr);width:100%;grid-column:1/-1"
+      <div class="g" style="grid-template-columns:minmax(260px,2fr) minmax(180px,1fr) minmax(180px,1fr);width:100%;grid-column:1/-1">
         <div class="w">
           <label>البحث باسم المريض</label>
           <input
