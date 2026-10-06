@@ -24,7 +24,10 @@ async function send(method, path, body) {
 
 async function load() {
   const u = S.user.role;
-  if (u === 'center') S.list = await send('GET', '/exams');
+  if (u === 'center') {
+  S.list = await send('GET', '/exams');
+  if (S.tab === 'statement') S.stmt = await send('GET', '/exams/statement?month=' + S.month);
+}
   else if (u === 'doctor') S.list = await send('GET', '/doctor/cases');
   else {
     [S.centers, S.doctors, S.settings, S.stmt] = await Promise.all([send('GET', '/admin/centers'), send('GET', '/admin/doctors'), send('GET', '/admin/settings'), send('GET', '/admin/statement?month=' + S.month)]);
@@ -333,7 +336,55 @@ function vDoctor() {
   h += o.status >= 4 ? `<h3>التقرير المعتمد</h3><div class="box">${E(o.report)}</div>` : `<h3>التقرير</h3><textarea id="rt"></textarea><div class="msg err" id="rm"></div><button class="alt" id="tp">إدراج قالب</button> <button class="btn" id="sb" data-id="${o.id}">اعتماد ورفع التقرير</button>`;
   return h + '</div>';
 }
+function vCenterStatement() {
+  const s = S.stmt || {
+    cases: 0,
+    exams: 0,
+    by_modality: {},
+    no_contrast: 0,
+    with_contrast: 0,
+    angiography: 0,
+    oncology: 0,
+    total: 0
+  };
 
+  const mods = Object.entries(s.by_modality || {})
+    .map(([k, n]) => `<tr><td>${E(k)}</td><td>${n}</td></tr>`)
+    .join('');
+
+  return `
+    <div class="card">
+      <h2>الجرد الشهري</h2>
+
+      <div class="g">
+        <div class="w">
+          <label>الشهر</label>
+          <input type="month" id="cmo" value="${S.month}">
+        </div>
+      </div>
+
+      <div class="ms">
+        <span>عدد الحالات: <b>${s.cases}</b></span>
+        <span>عدد الفحوصات: <b>${s.exams}</b></span>
+        <span>بدون صبغة: <b>${s.no_contrast}</b></span>
+        <span>مع صبغة: <b>${s.with_contrast}</b></span>
+        <span>Angio: <b>${s.angiography}</b></span>
+        <span>أورام: <b>${s.oncology}</b></span>
+      </div>
+
+      <div class="tw">
+        <table>
+          <tr><th>نوع التصوير</th><th>العدد</th></tr>
+          ${mods || '<tr><td colspan="2">لا توجد فحوصات لهذا الشهر</td></tr>'}
+        </table>
+      </div>
+
+      <h3>المبلغ الكلي: ${Number(s.total || 0).toLocaleString('ar-IQ')} د.ع</h3>
+
+      <button id="pcst">طباعة الجرد</button>
+    </div>
+  `;
+}
 function vAdmin() {
   const C = S.centers[S.pc], st = S.stmt;
   const acc = (u, k) => `<li><span>${E(u.name)}${u.specialty ? ' - ' + E(u.specialty) : ''}<br><small class="empty">${E(u.email)}${u.active ? '' : ' (معطّل)'}</small></span><span><button class="alt" data-pw="${u.id}">كلمة مرور جديدة</button> <button class="alt dn" data-act="${u.id}" data-v="${u.active ? 0 : 1}">${u.active ? 'تعطيل' : 'تفعيل'}</button></span></li>`;
@@ -375,10 +426,10 @@ function X() {
 }
 function R() {
   const u = S.user, role = u && u.role;
-  const N = !u ? [] : role === 'center' ? [['new', 'إضافة فحص'], ['cases', 'فحوصاتي']] : role === 'doctor' ? [['cases', 'الحالات']] : [['admin', 'الإدارة والجرد']];
+  const N = !u ? [] : role === 'center' ? [['new', 'إضافة فحص'], ['cases', 'فحوصاتي'], ['statement', 'الجرد الشهري']] : role === 'doctor' ? [['cases', 'الحالات']] : [['admin', 'الإدارة والجرد']];
   $('hp').textContent = u ? 'مرحباً، ' + u.name : '';
   $('nav').innerHTML = N.map((x) => `<button role="tab" aria-selected="${S.tab === x[0]}" data-t="${x[0]}">${x[1]}</button>`).join('') + (u ? '<button class="lo" data-lo="1">تسجيل الخروج</button>' : '');
-  $('app').innerHTML = !u ? vLogin() : role === 'admin' ? vAdmin() : role === 'doctor' ? vDoctor() : S.tab === 'new' ? vNew() : vCases();
+  $('app').innerHTML = !u ? vLogin() : role === 'admin' ? vAdmin() : role === 'doctor' ? vDoctor() : S.tab === 'new' ? vNew() : S.tab === 'statement' ? vCenterStatement() : vCases();
 }
 
 /* ---------- اختيار الفحوصات ---------- */
@@ -435,11 +486,12 @@ return;
     if (D.lr !== undefined) { S.lr = D.lr; S.msg = ''; R(); }
     else if (b.id === 'li') { const r = await send('POST', '/auth/login', { email: v('em'), password: $('pw').value, portal: PORTAL[S.lr] }); S.user = r.user; S.tab = home(); S.msg = ''; S.open = null; await load(); R(); }
     else if (D.lo) { await send('POST', '/auth/logout'); S.user = null; S.lr = ''; S.tab = ''; S.open = null; S.msg = ''; R(); }
-    else if (D.t) { S.tab = D.t; S.open = null; S.msg = ''; if (D.t === 'cases') await load(); R(); }
+    else if (D.t) { S.tab = D.t; S.open = null; S.msg = ''; if (D.t === 'cases' || D.t === 'statement') await load(); R(); }
     else if (D.rp) { S.open = S.open === +D.rp ? null : +D.rp; R(); }
     else if (D.dl) { await send('POST', `/exams/${D.dl}/deliver`); await load(); R(); }
     else if (b.id === 'pt') { document.body.classList.add('pr'); window.print(); document.body.classList.remove('pr'); }
     else if (b.id === 'pa') window.print();
+      else if (b.id === 'pcst') window.print();
     else if (D.op) { const r = await send('POST', `/doctor/cases/${D.op}/open`); S.list = S.list.map((e) => (e.id === r.id ? r : e)); S.open = r.id; R(); }
     else if (b.id === 'tp') { if (!$('rt').value) $('rt').value = 'الفحص:\nالمقارنة:\nالموجودات:\n\nالانطباع:\n'; }
     else if (b.id === 'sb') { if (!v('rt')) { $('rm').textContent = 'اكتب التقرير قبل الرفع.'; return; } await send('POST', `/doctor/cases/${D.id}/report`, { report: v('rt') }); await load(); R(); }
@@ -526,11 +578,24 @@ if (t.id === 'caseDate') {
 
   return;
 }
-  if (t.id === 'pcs') { S.pc = +t.value; R(); }
-  else if (t.id === 'mo' && t.value) act(async () => { S.month = t.value; S.stmt = await send('GET', '/admin/statement?month=' + S.month); R(); });
-  else if (t.id === 'ff') { let z = 0; [...t.files].forEach((x) => { z += x.size; }); $('fc').textContent = `${t.files.length} ملف، ${(z / 1048576).toFixed(1)} MB جاهزة للرفع`; }
+ if (t.id === 'pcs') { S.pc = +t.value; R(); }
+else if (t.id === 'mo' && t.value) act(async () => { S.month = t.value; S.stmt = await send('GET', '/admin/statement?month=' + S.month); R(); });
+else if (t.id === 'cmo' && t.value) act(async () => { S.month = t.value; S.stmt = await send('GET', '/exams/statement?month=' + S.month); R(); });
+else if (t.id === 'ff') { const z = 0; [...t.files].forEach((x) => { z += x.size; }); $('fc').textContent = `${t.files.length} ملف (${(z / 1048576).toFixed(1)} MB تقريباً)`; }
 });
+document.addEventListener('input', (ev) => {
+  if (ev.target.id === 'caseSearch') {
+    S.caseSearch = ev.target.value;
+    const pos = ev.target.selectionStart;
+    R();
 
+    const input = $('caseSearch');
+    if (input) {
+      input.focus();
+      input.setSelectionRange(pos, pos);
+    }
+  }
+});
 /* ---------- البدء: استرجاع الجلسة إن وُجدت ---------- */
 (async () => {
   try { S.user = (await send('GET', '/auth/me')).user; S.tab = home(); await load(); } catch (e) { S.user = null; }
