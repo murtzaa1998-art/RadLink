@@ -4,7 +4,21 @@ const $ = (id) => document.getElementById(id);
 const E = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const L = (a) => a.map((x) => `<option>${E(x)}</option>`).join('');
 const O = (a, s) => a.map((x, i) => `<option value="${i}"${i == s ? ' selected' : ''}>${E(x)}</option>`).join('');
-const parse = (s) => (s ? new Date(String(s).replace(' ', 'T')) : null);
+const parse = (s) => {
+  if (!s) return null;
+
+  let x = String(s).trim();
+
+  // تواريخ SQLite تكون UTC مثل: 2026-10-06 09:30:00
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(x)) {
+    x = x.replace(' ', 'T') + 'Z';
+  } else {
+    x = x.replace(' ', 'T');
+  }
+
+  const d = new Date(x);
+  return isNaN(d.getTime()) ? null : d;
+};
 const T = (s) => { const d = parse(s); return d ? d.toLocaleString('ar-IQ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; };
 const fmt = (n) => Number(n || 0).toLocaleString('ar-IQ') + ' د.ع';
 const pb = (p) => `<span class="pb ${p}">${PRI[p]}</span>`;
@@ -82,7 +96,7 @@ function vCases() {
   const all = S.list;
   const o = all.find((e) => e.id === S.open);
   const now = new Date();
-
+now.setHours(23, 59, 59, 999);
   // البحث باسم المريض
   const search = (S.caseSearch || '').trim().toLowerCase();
 
@@ -107,22 +121,25 @@ function vCases() {
     }
 
     if (filter === 'week') {
-      const x = new Date();
-      x.setDate(x.getDate() - 7);
-      return d >= x;
-    }
+  const x = new Date(now);
+  x.setDate(x.getDate() - 6);
+  x.setHours(0, 0, 0, 0);
+  return d >= x && d <= now;
+}
 
     if (filter === 'month') {
-      const x = new Date();
-      x.setMonth(x.getMonth() - 1);
-      return d >= x;
-    }
+  const x = new Date(now);
+  x.setMonth(x.getMonth() - 1);
+  x.setHours(0, 0, 0, 0);
+  return d >= x && d <= now;
+}
 
     if (filter === 'year') {
-      const x = new Date();
-      x.setFullYear(x.getFullYear() - 1);
-      return d >= x;
-    }
+  const x = new Date(now);
+  x.setFullYear(x.getFullYear() - 1);
+  x.setHours(0, 0, 0, 0);
+  return d >= x && d <= now;
+}
 
     if (filter === 'date' && selectedDate) {
       const y = d.getFullYear();
@@ -208,7 +225,7 @@ function vCases() {
             id="caseDate"
             type="date"
             value="${E(selectedDate)}"
-            ${filter === 'date' ? '' : 'disabled'}>
+            
         </div>
       </div>
 
