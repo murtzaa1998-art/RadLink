@@ -39,7 +39,8 @@ router.post('/', (req, res) => {
     const regions = parseList(b.regions), exams = parseList(b.exam_names);
     const study = (req.files && req.files.study) || [];
     const age = Number(b.age);
-    if (name.split(/\s+/).length < 4) return fail('اكتب اسم المريض الرباعي');
+    if (name.split(/\s+/).filter(Boolean).length < 3)
+  return fail('اكتب اسم المريض الثلاثي على الأقل');
     if (!Number.isInteger(age) || age < 0 || age > 120) return fail('العمر غير صالح');
     if (!['ذكر', 'أنثى'].includes(b.sex)) return fail('الجنس غير صالح');
     if (!cfg.MODALITIES.includes(b.modality)) return fail('نوع التصوير غير صالح');
