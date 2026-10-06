@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 const E = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const L = (a) => a.map((x) => `<option>${E(x)}</option>`).join('');
 const O = (a, s) => a.map((x, i) => `<option value="${i}"${i == s ? ' selected' : ''}>${E(x)}</option>`).join('');
-const parse = (s) => (s ? new Date(String(s).replace(' ', 'T') + 'Z') : null);
+const parse = (s) => (s ? new Date(String(s).replace(' ', 'T')) : null);
 const T = (s) => { const d = parse(s); return d ? d.toLocaleString('ar-IQ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; };
 const fmt = (n) => Number(n || 0).toLocaleString('ar-IQ') + ' د.ع';
 const pb = (p) => `<span class="pb ${p}">${PRI[p]}</span>`;
