@@ -135,28 +135,47 @@ now.setHours(23, 59, 59, 999);
     if (!d) return true;
 
     if (filter === 'today') {
-      return d.toDateString() === now.toDateString();
-    }
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
 
-    if (filter === 'week') {
-  const x = new Date(now);
-  x.setDate(x.getDate() - 6);
-  x.setHours(0, 0, 0, 0);
-  return d >= x && d <= now;
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  return d >= start && d <= end;
 }
 
-    if (filter === 'month') {
-  const x = new Date(now);
-  x.setMonth(x.getMonth() - 1);
-  x.setHours(0, 0, 0, 0);
-  return d >= x && d <= now;
+if (filter === 'week') {
+  const start = new Date();
+  start.setDate(start.getDate() - 6);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  return d >= start && d <= end;
 }
 
-    if (filter === 'year') {
-  const x = new Date(now);
-  x.setFullYear(x.getFullYear() - 1);
-  x.setHours(0, 0, 0, 0);
-  return d >= x && d <= now;
+if (filter === 'month') {
+  const start = new Date();
+  start.setDate(start.getDate() - 29);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  return d >= start && d <= end;
+}
+
+if (filter === 'year') {
+  const start = new Date();
+  start.setDate(start.getDate() - 364);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  return d >= start && d <= end;
+}
 }
 
     if (filter === 'date' && selectedDate) {
