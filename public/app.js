@@ -41,10 +41,34 @@ function vLogin() {
 
 function vNew() {
   return `<div class="card"><h2>إضافة فحص جديد</h2>
-<h3><b>1</b>بيانات المريض</h3><div class="g"><div class="w"><label>الاسم الرباعي</label><input id="n" autocomplete="off"></div><div><label>العمر</label><input id="a" type="number" min="0" max="120"></div><div><label>الجنس</label><select id="g"><option>ذكر</option><option>أنثى</option></select></div><div><label>الطبيب المُرسِل</label><input id="rf"></div></div>
-<h3><b>2</b>نوع التصوير</h3><div class="chips" id="md" data-s="1">${TYPES.map((t) => `<button type="button" class="chip big" data-v="${t[0]}" aria-pressed="false">${t[1]} · ${t[0]}</button>`).join('')}</div>
+<h3><b>1</b>بيانات المريض</h3><div class="g"><div class="w"><label>اسم المريض الثلاثي أو الرباعي</label><input id="n" autocomplete="off"></div><div><label>العمر</label><input id="a" type="number" min="0" max="120"></div><div><label>الجنس</label><select id="g"><option>ذكر</option><option>أنثى</option></select></div><div><label>الطبيب المُرسِل <small>(اختياري)</small></label><input id="rf" placeholder="يمكن تركه فارغاً"></div></div>
+<h3><b>2</b>نوع التصوير</h3>
+<div class="g">
+  <div class="w">
+    <label>اختر نوع التصوير</label>
+    <select id="md">
+      <option value="">-- اختر نوع التصوير --</option>
+      ${TYPES.map((t) => `<option value="${t[0]}">${t[1]} · ${t[0]}</option>`).join('')}
+    </select>
+  </div>
+</div>
 <h3><b>3</b>المنطقة والفحص المطلوب</h3><div id="ex"><span class="empty">اختر نوع التصوير أولاً، ثم اختر الفحوصات المطلوبة (يمكن اختيار أكثر من فحص).</span></div>
-<h3><b>4</b>الصبغة والبروتوكول</h3><div class="g"><div><label>الصبغة</label><select id="ct">${Object.keys(CONS).map((k) => `<option value="${k}">${CONS[k]}</option>`).join('')}</select></div><div><label>نوع الدراسة</label><select id="pr">${L(PROTO)}</select></div><div><label>اختصاص الطبيب القارئ</label><select id="sp">${L(SPECS)}</select></div></div>
+<h3><b>4</b>الصبغة والبروتوكول</h3><div class="g"><div>
+  <label>نوع الفحص</label>
+  <select id="pr">
+    <option value="Normal">فحص عادي بدون صبغة</option>
+    <option value="Contrast">فحص مع صبغة</option>
+    <option value="Oncology">فحص أورام</option>
+    <option value="Angiography">فحص Angio</option>
+  </select>
+</div>
+
+<div>
+  <label>الصبغة</label>
+  <select id="ct" disabled>
+    ${Object.keys(CONS).map((k) => `<option value="${k}">${CONS[k]}</option>`).join('')}
+  </select>
+</div></div>
 <h3><b>5</b>المعلومات السريرية والأولوية</h3><div class="g"><div class="w"><label>المشاكل والأعراض والتاريخ السريري</label><textarea id="cp"></textarea></div><div class="w"><label>إرفاق أوليات المريض أو ورقة الفحص (صور أو PDF)</label><input type="file" id="hf" multiple accept="image/*,.pdf"></div></div>
 <div class="chips" id="pi" data-s="1" style="margin-top:12px"><button type="button" class="chip big" data-v="R" aria-pressed="true">عادي</button><button type="button" class="chip big" data-v="U" aria-pressed="false">عاجل</button><button type="button" class="chip big stat" data-v="S" aria-pressed="false">طارئ STAT</button></div>
 <h3><b>6</b>رفع صور الفحص</h3><input type="file" id="ff" multiple><div class="msg" id="fc">DICOM أو PDF أو JPG، ويمكن رفع أكثر من ملف.</div><progress class="bar" id="pg" value="0" max="100" hidden></progress>
@@ -52,12 +76,245 @@ function vNew() {
 }
 
 function vCases() {
-  const l = S.list, td = new Date().toDateString(), o = l.find((e) => e.id === S.open);
-  const c = [['حالات اليوم', l.filter((e) => parse(e.created_at).toDateString() === td).length], ['بانتظار التقرير', l.filter((e) => e.status < 4).length], ['تقارير مكتملة', l.filter((e) => e.status >= 4).length]];
-  let h = `<div class="dash">${c.map((x) => `<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join('')}</div>${S.msg ? `<div class="msg">${E(S.msg)}</div>` : ''}<div class="card"><h2>الفحوصات المرفوعة</h2>`;
-  h += l.length ? `<div class="tw"><table><tr><th>رقم الحالة</th><th>المريض</th><th>الفحص</th><th>الأولوية</th><th>الحالة</th><th>وقت الرفع</th><th></th></tr>${l.map((e) => `<tr><td>${e.case_no}</td><td>${E(e.patient_name)}</td><td>${E(e.exam_names.join('، '))}</td><td>${pb(e.priority)}</td><td>${trk(e.status)}</td><td>${T(e.created_at)}</td><td>${e.status >= 4 ? `<button class="alt" data-rp="${e.id}">عرض التقرير</button> ` : ''}${e.status === 4 ? `<button class="alt" data-dl="${e.id}">تم تسليمه للمريض</button>` : ''}</td></tr>`).join('')}</table></div>` : '<p class="empty">لا توجد فحوصات بعد.</p>';
-  h += '</div>';
-  if (o && o.status >= 4) h += `<div class="card sheet"><h2>تقرير ${E(o.exam_names.join('، '))}</h2><div class="info"><div><span>المريض</span><b>${E(o.patient_name)}</b></div><div><span>العمر والجنس</span><b>${o.age} - ${o.sex}</b></div><div><span>رقم الحالة</span><b>${o.case_no}</b></div><div><span>الطبيب المُرسِل</span><b>${E(o.referrer || '-')}</b></div><div><span>المركز</span><b>${E(S.user.name)}</b></div><div><span>تاريخ التقرير</span><b>${T(o.reported_at)}</b></div></div><h3>التقرير</h3><div class="box">${E(o.report)}</div><p class="msg">القارئ: ${E(o.doctor_name || '-')}</p><p class="np"><button class="btn" id="pt">طباعة التقرير للمريض</button></p></div>`;
+  const all = S.list;
+  const o = all.find((e) => e.id === S.open);
+  const now = new Date();
+
+  // البحث باسم المريض
+  const search = (S.caseSearch || '').trim().toLowerCase();
+
+  // نوع الفلترة الزمنية
+  const filter = S.caseFilter || 'all';
+  const selectedDate = S.caseDate || '';
+
+  let l = all.filter((e) => {
+    // فلترة الاسم
+    if (
+      search &&
+      !String(e.patient_name || '').toLowerCase().includes(search)
+    ) {
+      return false;
+    }
+
+    const d = parse(e.created_at);
+    if (!d) return true;
+
+    if (filter === 'today') {
+      return d.toDateString() === now.toDateString();
+    }
+
+    if (filter === 'week') {
+      const x = new Date();
+      x.setDate(x.getDate() - 7);
+      return d >= x;
+    }
+
+    if (filter === 'month') {
+      const x = new Date();
+      x.setMonth(x.getMonth() - 1);
+      return d >= x;
+    }
+
+    if (filter === 'year') {
+      const x = new Date();
+      x.setFullYear(x.getFullYear() - 1);
+      return d >= x;
+    }
+
+    if (filter === 'date' && selectedDate) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}` === selectedDate;
+    }
+
+    return true;
+  });
+
+  const td = now.toDateString();
+
+  const c = [
+    [
+      'حالات اليوم',
+      all.filter((e) => {
+        const d = parse(e.created_at);
+        return d && d.toDateString() === td;
+      }).length
+    ],
+    ['بانتظار التقرير', all.filter((e) => e.status < 4).length],
+    ['تقارير مكتملة', all.filter((e) => e.status >= 4).length]
+  ];
+
+  let h = `
+    <div class="dash">
+      ${c.map((x) => `
+        <div>
+          <span>${x[0]}</span>
+          <b>${x[1]}</b>
+        </div>
+      `).join('')}
+    </div>
+
+    ${S.msg ? `<div class="msg">${E(S.msg)}</div>` : ''}
+
+    <div class="card">
+      <h2>فحوصاتي</h2>
+
+      <div class="g">
+        <div class="w">
+          <label>البحث باسم المريض</label>
+          <input
+            id="caseSearch"
+            type="search"
+            placeholder="اكتب اسم المريض..."
+            value="${E(S.caseSearch || '')}">
+        </div>
+
+        <div>
+          <label>عرض الفحوصات</label>
+          <select id="caseFilter">
+            <option value="all" ${filter === 'all' ? 'selected' : ''}>
+              كل الفحوصات
+            </option>
+
+            <option value="today" ${filter === 'today' ? 'selected' : ''}>
+              فحوصات اليوم
+            </option>
+
+            <option value="week" ${filter === 'week' ? 'selected' : ''}>
+              آخر أسبوع
+            </option>
+
+            <option value="month" ${filter === 'month' ? 'selected' : ''}>
+              آخر شهر
+            </option>
+
+            <option value="year" ${filter === 'year' ? 'selected' : ''}>
+              آخر سنة
+            </option>
+
+            <option value="date" ${filter === 'date' ? 'selected' : ''}>
+              تاريخ محدد
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label>التاريخ</label>
+          <input
+            id="caseDate"
+            type="date"
+            value="${E(selectedDate)}"
+            ${filter === 'date' ? '' : 'disabled'}>
+        </div>
+      </div>
+
+      <p class="msg">
+        عدد النتائج المعروضة: <b>${l.length}</b>
+      </p>
+  `;
+
+  h += l.length
+    ? `
+      <div class="tw">
+        <table>
+          <tr>
+            <th>رقم الحالة</th>
+            <th>المريض</th>
+            <th>الفحص</th>
+            <th>الأولوية</th>
+            <th>الحالة</th>
+            <th>وقت الرفع</th>
+            <th></th>
+          </tr>
+
+          ${l.map((e) => `
+            <tr>
+              <td>${e.case_no}</td>
+              <td>${E(e.patient_name)}</td>
+              <td>${E(e.exam_names.join('، '))}</td>
+              <td>${pb(e.priority)}</td>
+              <td>${trk(e.status)}</td>
+              <td>${T(e.created_at)}</td>
+
+              <td>
+                ${e.status >= 4
+                  ? `<button class="alt" data-rp="${e.id}">
+                       عرض التقرير
+                     </button>`
+                  : ''
+                }
+
+                ${e.status === 4
+                  ? `<button class="alt" data-dl="${e.id}">
+                       تم تسليمه للمريض
+                     </button>`
+                  : ''
+                }
+              </td>
+            </tr>
+          `).join('')}
+        </table>
+      </div>
+    `
+    : `<p class="empty">لا توجد فحوصات مطابقة للبحث.</p>`;
+
+  h += `</div>`;
+
+  if (o && o.status >= 4) {
+    h += `
+      <div class="card sheet">
+        <h2>تقرير ${E(o.exam_names.join('، '))}</h2>
+
+        <div class="info">
+          <div>
+            <span>المريض</span>
+            <b>${E(o.patient_name)}</b>
+          </div>
+
+          <div>
+            <span>العمر والجنس</span>
+            <b>${o.age} - ${o.sex}</b>
+          </div>
+
+          <div>
+            <span>رقم الحالة</span>
+            <b>${o.case_no}</b>
+          </div>
+
+          <div>
+            <span>الطبيب المُرسِل</span>
+            <b>${E(o.referrer || '-')}</b>
+          </div>
+
+          <div>
+            <span>المركز</span>
+            <b>${E(S.user.name)}</b>
+          </div>
+
+          <div>
+            <span>تاريخ التقرير</span>
+            <b>${T(o.reported_at)}</b>
+          </div>
+        </div>
+
+        <h3>التقرير</h3>
+
+        <div class="box">${E(o.report)}</div>
+
+        <p class="msg">
+          القارئ: ${E(o.doctor_name || '-')}
+        </p>
+
+        <p class="np">
+          <button class="btn" id="pt">
+            طباعة التقرير للمريض
+          </button>
+        </p>
+      </div>
+    `;
+  }
+
   return h;
 }
 
@@ -87,6 +344,35 @@ function vAdmin() {
 <div class="card"><h2>الجرد الشهري</h2><div class="g"><div><label>الشهر</label><input type="month" id="mo" value="${S.month}"></div></div><div class="tw"><table><tr><th>المركز</th><th>الحالات</th><th>حسب النوع</th><th>بدون صبغة</th><th>مع صبغة</th><th>Angio</th><th>Oncology</th><th>المبلغ</th></tr>${st.centers.map((s) => `<tr><td>${E(s.center)}</td><td>${s.cases}</td><td>${Object.keys(s.by_modality).map((k) => k + ': ' + s.by_modality[k]).join(' | ') || '-'}</td><td>${s.no_contrast}</td><td>${s.with_contrast}</td><td>${s.angiography}</td><td>${s.oncology}</td><td>${fmt(s.total)}</td></tr>`).join('')}</table></div><p class="msg">تُحسب الحالات التي صار تقريرها جاهزاً فقط. إجمالي المستحقات</p><div class="tot">${fmt(st.grand_total)}</div><p class="np"><button class="alt" id="pa">طباعة كشف الحساب</button></p></div>`;
 }
 
+function X() {
+  const m = v('md');
+
+  if (!m) {
+    $('ex').innerHTML =
+      '<span class="empty">اختر نوع التصوير أولاً.</span>';
+    return;
+  }
+
+  $('ex').innerHTML = `
+    <div class="g">
+      <div class="w">
+        <label>المنطقة</label>
+        <select id="rg">
+          <option value="">-- اختر المنطقة --</option>
+          ${CATD[m].map((g, i) => {
+            const a = g[0].split('|');
+            const label = a[0] + ' · ' + a[1];
+            return `<option value="${i}">${E(label)}</option>`;
+          }).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div id="examList" style="margin-top:14px">
+      <span class="empty">اختر المنطقة لعرض الفحوصات المطلوبة.</span>
+    </div>
+  `;
+}
 function R() {
   const u = S.user, role = u && u.role;
   const N = !u ? [] : role === 'center' ? [['new', 'إضافة فحص'], ['cases', 'فحوصاتي']] : role === 'doctor' ? [['cases', 'الحالات']] : [['admin', 'الإدارة والجرد']];
@@ -96,25 +382,22 @@ function R() {
 }
 
 /* ---------- اختيار الفحوصات ---------- */
-function X() {
-  const m = pr('md')[0], old = pr('ex');
-  if (!m) return;
-  $('ex').innerHTML = CATD[m].map((g) => { const a = g[0].split('|'), l = a[0] + ' · ' + a[1]; return `<div class="gl">${E(l)}</div><div class="chips">${g[1].split(';').map((n) => `<button type="button" class="chip" data-v="${E(n)}" data-g="${E(l)}" aria-pressed="${old.includes(n)}">${E(n)}</button>`).join('')}</div>`; }).join('');
-}
+
 function A() {
-  const q = [...document.querySelectorAll('#ex .chip[aria-pressed=true]')], s = q.map((x) => x.dataset.v).join(' ');
-  if (/Contrast|CTA|CTPA|Urography|Triphasic|Perfusion|MRA|MRV|Enterography|Staging/.test(s)) $('ct').value = 'IV';
-  if (/CTA|CTPA|MRA|MRV/.test(s)) $('pr').value = 'Angiography';
-  if (q.some((x) => x.dataset.g.includes('Oncology'))) { $('pr').value = 'Oncology/Staging'; $('sp').value = 'أورام'; }
+  // اختيار الفحوصات يبقى يدويًا.
+  // نوع الفحص والصبغة يحددهما المستخدم من الحقول المخصصة.
 }
 
 function submitExam() {
-  const fm = $('fm'), m = pr('md')[0], q = [...document.querySelectorAll('#ex .chip[aria-pressed=true]')], ff = $('ff').files;
-  if (v('n').split(/\s+/).length < 4) { fm.textContent = 'اكتب اسم المريض الرباعي.'; return; }
+  const fm = $('fm'), m = v('md'), q = [...document.querySelectorAll('#ex .chip[aria-pressed=true]')], ff = $('ff').files;
+  if (v('n').split(/\s+/).filter(Boolean).length < 3) {
+  fm.textContent = 'اكتب اسم المريض الثلاثي على الأقل.';
+  return;
+}
   if (!v('a') || !v('cp') || !m || !q.length || !ff.length) { fm.textContent = 'أكمل العمر والمشاكل، واختر نوع التصوير والفحص، وأرفق صور الفحص.'; return; }
   fm.textContent = '';
   const fd = new FormData();
-  Object.entries({ patient_name: v('n'), age: v('a'), sex: v('g'), referrer: v('rf'), modality: m, regions: JSON.stringify([...new Set(q.map((x) => x.dataset.g))]), exam_names: JSON.stringify(q.map((x) => x.dataset.v)), contrast: v('ct'), protocol: v('pr'), specialty: v('sp'), priority: pr('pi')[0], clinical_info: v('cp') }).forEach(([k, val]) => fd.append(k, val));
+  Object.entries({ patient_name: v('n'), age: v('a'), sex: v('g'), referrer: v('rf'), modality: m, regions: JSON.stringify([...new Set(q.map((x) => x.dataset.g))]), exam_names: JSON.stringify(q.map((x) => x.dataset.v)), contrast: v('ct'), protocol: v('pr'), priority: pr('pi')[0], clinical_info: v('cp') }).forEach(([k, val]) => fd.append(k, val));
   [...ff].forEach((f) => fd.append('study', f));
   [...$('hf').files].forEach((f) => fd.append('prior', f));
   $('up').disabled = true; $('pg').hidden = false;
@@ -145,7 +428,8 @@ document.addEventListener('click', (ev) => {
   if (b.classList.contains('chip') && D.lr === undefined) {
     const gp = b.parentNode;
     if (gp.dataset.s) { [...gp.children].forEach((x) => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); } else b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
-    if (gp.id === 'md') X(); if (b.closest('#ex')) A(); return;
+    if (b.closest('#ex')) A();
+return;
   }
   act(async () => {
     if (D.lr !== undefined) { S.lr = D.lr; S.msg = ''; R(); }
@@ -171,6 +455,77 @@ document.addEventListener('click', (ev) => {
 
 document.addEventListener('change', (ev) => {
   const t = ev.target;
+  if (t.id === 'caseFilter') {
+  S.caseFilter = t.value;
+
+  if (t.value !== 'date') {
+    S.caseDate = '';
+  }
+
+  R();
+  return;
+}
+
+if (t.id === 'caseDate') {
+  S.caseDate = t.value;
+  S.caseFilter = 'date';
+  R();
+  return;
+}
+  if (t.id === 'md') {
+  X();
+  return;
+}
+  if (t.id === 'pr') {
+  const ct = $('ct');
+
+  if (t.value === 'Normal') {
+    ct.value = 'N';
+    ct.disabled = true;
+  } else {
+    ct.disabled = false;
+
+    // عند اختيار فحص يحتاج صبغة لا نتركه على "بدون صبغة"
+    if (ct.value === 'N') {
+      ct.value = 'IV';
+    }
+  }
+
+  return;
+}
+  if (t.id === 'rg') {
+  const m = v('md');
+  const i = Number(t.value);
+
+  if (t.value === '' || !CATD[m] || !CATD[m][i]) {
+    $('examList').innerHTML =
+      '<span class="empty">اختر المنطقة لعرض الفحوصات المطلوبة.</span>';
+    return;
+  }
+
+  const g = CATD[m][i];
+  const a = g[0].split('|');
+  const region = a[0] + ' · ' + a[1];
+
+  $('examList').innerHTML = `
+    <label>الفحوصات المطلوبة</label>
+    <div class="chips" id="examChoices">
+      ${g[1].split(';').map((n) => `
+        <button
+          type="button"
+          class="chip"
+          data-v="${E(n)}"
+          data-g="${E(region)}"
+          aria-pressed="false">
+          ${E(n)}
+        </button>
+      `).join('')}
+    </div>
+    <p class="msg">يمكن اختيار أكثر من فحص.</p>
+  `;
+
+  return;
+}
   if (t.id === 'pcs') { S.pc = +t.value; R(); }
   else if (t.id === 'mo' && t.value) act(async () => { S.month = t.value; S.stmt = await send('GET', '/admin/statement?month=' + S.month); R(); });
   else if (t.id === 'ff') { let z = 0; [...t.files].forEach((x) => { z += x.size; }); $('fc').textContent = `${t.files.length} ملف، ${(z / 1048576).toFixed(1)} MB جاهزة للرفع`; }
