@@ -27,7 +27,25 @@ const pr = (id) => [...document.querySelectorAll(`#${id} .chip[aria-pressed=true
 const isImg = (n) => /\.(jpe?g|png|gif|webp)$/i.test(n);
 const trk = (s) => `<span class="trk${s > 3 ? ' k' : ''}">${[1, 2, 3, 4, 5].map((i) => `<i${i <= s ? ' class="on"' : ''}></i>`).join('')}</span>${SN[s]}`;
 
-const S = { user: null, lr: '', tab: '', open: null, msg: '', list: [], centers: [], doctors: [], settings: { contrast_fee: 0 }, stmt: null, month: new Date().toISOString().slice(0, 7), pc: 0 };
+const S = {
+  user: null,
+  lr: '',
+  tab: '',
+  open: null,
+  msg: '',
+  list: [],
+  centers: [],
+  doctors: [],
+  settings: { contrast_fee: 0 },
+  stmt: null,
+  month: new Date().toISOString().slice(0, 7),
+  pc: 0,
+
+  // فلاتر صفحة فحوصاتي
+  caseSearch: '',
+  caseFilter: 'all',
+  caseDate: ''
+};
 
 async function send(method, path, body) {
   const r = await fetch('/api' + path, { method, credentials: 'same-origin', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
@@ -180,7 +198,7 @@ now.setHours(23, 59, 59, 999);
     <div class="card">
       <h2>فحوصاتي</h2>
 
-      <div class="g">
+      <div class="g" style="grid-template-columns:2fr 1fr 1fr;width:100%">
         <div class="w">
           <label>البحث باسم المريض</label>
           <input
@@ -224,7 +242,7 @@ now.setHours(23, 59, 59, 999);
           <input
             id="caseDate"
             type="date"
-            value="${E(selectedDate)}"
+            value="${E(selectedDate)}">
             
         </div>
       </div>
