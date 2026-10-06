@@ -39,6 +39,11 @@ router.post('/', (req, res) => {
     const regions = parseList(b.regions), exams = parseList(b.exam_names);
     const study = (req.files && req.files.study) || [];
     const age = Number(b.age);
+    if (b.protocol === 'Normal') {
+  b.contrast = 'N';
+} else if (['Contrast', 'Oncology', 'Angiography'].includes(b.protocol) && b.contrast === 'N') {
+  return fail('اختر نوع الصبغة لهذا الفحص');
+}
     if (name.split(/\s+/).filter(Boolean).length < 3)
   return fail('اكتب اسم المريض الثلاثي على الأقل');
     if (!Number.isInteger(age) || age < 0 || age > 120) return fail('العمر غير صالح');
@@ -46,8 +51,9 @@ router.post('/', (req, res) => {
     if (!cfg.MODALITIES.includes(b.modality)) return fail('نوع التصوير غير صالح');
     if (!regions || !regions.length || !exams || !exams.length) return fail('اختر الفحوصات المطلوبة');
     if (!cfg.CONTRASTS.includes(b.contrast)) return fail('خيار الصبغة غير صالح');
-    if (!cfg.PROTOCOLS.includes(b.protocol)) return fail('نوع الدراسة غير صالح');
-    if (!cfg.SPECIALTIES.includes(b.specialty)) return fail('الاختصاص غير صالح');
+    if (!['Normal', 'Contrast', 'Oncology', 'Angiography'].includes(b.protocol))
+  return fail('نوع الفحص غير صالح');
+    
     if (!cfg.PRIORITIES.includes(b.priority)) return fail('الأولوية غير صالحة');
     if (!String(b.clinical_info || '').trim()) return fail('اكتب المشاكل والمعلومات السريرية');
     if (!study.length) return fail('أرفق صور الفحص');
@@ -55,7 +61,7 @@ router.post('/', (req, res) => {
     const id = db.transaction(() => {
       const id = db.prepare(`INSERT INTO exams(center_id,patient_name,age,sex,referrer,modality,regions,exam_names,contrast,protocol,specialty,priority,clinical_info)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(req.user.id, name, age, b.sex, String(b.referrer || '').trim(), b.modality,
-        JSON.stringify(regions), JSON.stringify(exams), b.contrast, b.protocol, b.specialty, b.priority, String(b.clinical_info).trim()).lastInsertRowid;
+        JSON.stringify(regions), JSON.stringify(exams), b.contrast, b.protocol, 'أشعة', b.priority, String(b.clinical_info).trim()).lastInsertRowid;
       const ins = db.prepare('INSERT INTO files(exam_id,kind,original_name,stored_name,mime,size) VALUES(?,?,?,?,?,?)');
       for (const kind of ['study', 'prior'])
         for (const f of (req.files && req.files[kind]) || [])
