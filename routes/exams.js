@@ -146,6 +146,122 @@ router.get('/statement', (req, res) => {
 
   res.json(statement);
 });
+// تعديل بيانات الفحص من قبل المركز/المستشفى
+router.put('/:id', (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'رقم الفحص غير صالح' });
+  }
+
+  const old = db.prepare(
+    'SELECT * FROM exams WHERE id=? AND center_id=?'
+  ).get(id, req.user.id);
+
+  if (!old) {
+    return res.status(404).json({ error: 'الفحص غير موجود' });
+  }
+
+  // يمنع تعديل الفحص بعد صدور التقرير
+  if (old.status >= 4) {
+    return res.status(409).json({
+      error: 'لا يمكن تعديل الفحص بعد صدور التقرير'
+    });
+  }
+
+  const b = req.body || {};
+  const name = String(b.patient_name || '').trim();
+  const age = Number(b.age);
+  const regions = Array.isArray(b.regions) ? b.regions : [];
+  const exams = Array.isArray(b.exam_names) ? b.exam_names : [];
+
+  if (name.split(/\s+/).filter(Boolean).length < 3) {
+    return res.status(400).json({ error: 'اكتب اسم المريض الثلاثي على الأقل' });
+  }
+
+  if (!Number.isInteger(age) || age < 0 || age > 120) {
+    return res.status(400).json({ error: 'العمر غير صالح' });
+  }
+
+  if (!['ذكر', 'أنثى'].includes(b.sex)) {
+    return res.status(400).json({ error: 'الجنس غير صالح' });
+  }
+
+  if (!cfg.MODALITIES.includes(b.modality)) {
+    return res.status(400).json({ error: 'نوع التصوير غير صالح' });
+  }
+
+  if (!regions.length || !exams.length) {
+    return res.status(400).json({ error: 'اختر منطقة وفحص واحد على الأقل' });
+  }
+
+  if (!['Normal', 'Contrast', 'Oncology', 'Angiography'].includes(b.protocol)) {
+    return res.status(400).json({ error: 'نوع الفحص غير صالح' });
+  }
+
+  let contrast = b.contrast;
+
+  if (b.protocol === 'Normal') {
+    contrast = 'N';
+  } else if (
+    ['Contrast', 'Oncology', 'Angiography'].includes(b.protocol) &&
+    contrast === 'N'
+  ) {
+    return res.status(400).json({ error: 'اختر نوع الصبغة لهذا الفحص' });
+  }
+
+  if (!cfg.CONTRASTS.includes(contrast)) {
+    return res.status(400).json({ error: 'خيار الصبغة غير صالح' });
+  }
+
+  if (!cfg.PRIORITIES.includes(b.priority)) {
+    return res.status(400).json({ error: 'الأولوية غير صالحة' });
+  }
+
+  const clinical = String(b.clinical_info || '').trim();
+
+  if (!clinical) {
+    return res.status(400).json({
+      error: 'اكتب المشاكل والمعلومات السريرية'
+    });
+  }
+
+  db.prepare(`
+    UPDATE exams SET
+      patient_name=?,
+      age=?,
+      sex=?,
+      referrer=?,
+      modality=?,
+      regions=?,
+      exam_names=?,
+      contrast=?,
+      protocol=?,
+      priority=?,
+      clinical_info=?
+    WHERE id=? AND center_id=?
+  `).run(
+    name,
+    age,
+    b.sex,
+    String(b.referrer || '').trim(),
+    b.modality,
+    JSON.stringify(regions),
+    JSON.stringify(exams),
+    contrast,
+    b.protocol,
+    b.priority,
+    clinical,
+    id,
+    req.user.id
+  );
+
+  const updated = db.prepare(
+    'SELECT * FROM exams WHERE id=? AND center_id=?'
+  ).get(id, req.user.id);
+
+  res.json(view(updated, 'center'));
+});
 // تأكيد تسليم التقرير للمريض
 router.post('/:id/deliver', (req, res) => {
   const r = db.prepare("UPDATE exams SET status=5, delivered_at=datetime('now') WHERE id=? AND center_id=? AND status=4")
