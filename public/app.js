@@ -241,6 +241,12 @@ function vCases() {
               <td>${T(e.created_at)}</td>
 
               <td>
+              ${e.status < 4
+  ? `<button class="alt" data-ed="${e.id}">
+       ✏️ تعديل الفحص
+     </button>`
+  : ''
+}
                 ${e.status >= 4
                   ? `<button class="alt" data-rp="${e.id}">
                        عرض التقرير
@@ -320,7 +326,118 @@ function vCases() {
 
   return h;
 }
+function vEditExam() {
+  const e = S.list.find((x) => x.id === S.edit);
+  if (!e) return '';
 
+  return `
+    <div class="card">
+      <h2>✏️ تعديل الفحص</h2>
+
+      <div class="g">
+        <div class="w">
+          <label>اسم المريض الثلاثي أو الرباعي</label>
+          <input id="en" value="${E(e.patient_name)}">
+        </div>
+
+        <div>
+          <label>العمر</label>
+          <input id="ea" type="number" min="0" max="120" value="${e.age}">
+        </div>
+
+        <div>
+          <label>الجنس</label>
+          <select id="eg">
+            <option ${e.sex === 'ذكر' ? 'selected' : ''}>ذكر</option>
+            <option ${e.sex === 'أنثى' ? 'selected' : ''}>أنثى</option>
+          </select>
+        </div>
+
+        <div>
+          <label>الطبيب المُرسِل (اختياري)</label>
+          <input id="erf" value="${E(e.referrer || '')}">
+        </div>
+      </div>
+
+      <h3>نوع التصوير</h3>
+      <select id="emd">
+        ${TYPES.map((t) =>
+          `<option value="${t[0]}" ${e.modality === t[0] ? 'selected' : ''}>
+            ${t[1]} · ${t[0]}
+          </option>`
+        ).join('')}
+      </select>
+
+      <h3>المنطقة والفحص</h3>
+      <div id="eex">
+        <div class="g">
+          <div class="w">
+            <label>المنطقة</label>
+            <select id="erg">
+              <option value="">-- اختر المنطقة --</option>
+              ${(CATD[e.modality] || []).map((g, i) => {
+                const a = g[0].split('|');
+                return `<option value="${i}">${E(a[0] + ' · ' + a[1])}</option>`;
+              }).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div id="eExamList" style="margin-top:14px">
+          <p class="msg">
+            الفحص الحالي: <b>${E((e.exam_names || []).join('، '))}</b>
+          </p>
+        </div>
+      </div>
+
+      <h3>نوع الفحص والصبغة</h3>
+      <div class="g">
+        <div>
+          <label>نوع الفحص</label>
+          <select id="epr">
+            <option value="Normal" ${e.protocol === 'Normal' ? 'selected' : ''}>فحص عادي بدون صبغة</option>
+            <option value="Contrast" ${e.protocol === 'Contrast' ? 'selected' : ''}>فحص مع صبغة</option>
+            <option value="Oncology" ${e.protocol === 'Oncology' ? 'selected' : ''}>فحص أورام</option>
+            <option value="Angiography" ${e.protocol === 'Angiography' ? 'selected' : ''}>فحص Angio</option>
+          </select>
+        </div>
+
+        <div>
+          <label>الصبغة</label>
+          <select id="ect" ${e.protocol === 'Normal' ? 'disabled' : ''}>
+            ${Object.keys(CONS).map((k) =>
+              `<option value="${k}" ${e.contrast === k ? 'selected' : ''}>
+                ${CONS[k]}
+              </option>`
+            ).join('')}
+          </select>
+        </div>
+      </div>
+
+      <h3>المعلومات السريرية</h3>
+      <textarea id="ecp">${E(e.clinical_info || '')}</textarea>
+
+      <h3>الأولوية</h3>
+      <select id="epi">
+        <option value="R" ${e.priority === 'R' ? 'selected' : ''}>عادي</option>
+        <option value="U" ${e.priority === 'U' ? 'selected' : ''}>عاجل</option>
+        <option value="S" ${e.priority === 'S' ? 'selected' : ''}>طارئ STAT</option>
+      </select>
+
+      <div class="msg err" id="eem"></div>
+
+      <p>
+        <button class="btn" id="saveEdit" data-id="${e.id}">
+          حفظ التعديلات
+        </button>
+
+        <button class="alt" id="cancelEdit">
+          إلغاء
+        </button>
+      </p>
+    </div>
+  `;
+}
 function vDoctor() {
   const l = S.list, o = l.find((e) => e.id === S.open);
   let h = `<div class="card"><h2>حالات اختصاص ${E(S.user.specialty)}</h2>`;
@@ -429,6 +546,7 @@ function R() {
   const N = !u ? [] : role === 'center' ? [['new', 'إضافة فحص'], ['cases', 'فحوصاتي'], ['statement', 'الجرد الشهري']] : role === 'doctor' ? [['cases', 'الحالات']] : [['admin', 'الإدارة والجرد']];
   $('hp').textContent = u ? 'مرحباً، ' + u.name : '';
   $('nav').innerHTML = N.map((x) => `<button role="tab" aria-selected="${S.tab === x[0]}" data-t="${x[0]}">${x[1]}</button>`).join('') + (u ? '<button class="lo" data-lo="1">تسجيل الخروج</button>' : '');
+  if (role === 'center' && S.edit) { $('app').innerHTML = vEditExam(); return; }
   $('app').innerHTML = !u ? vLogin() : role === 'admin' ? vAdmin() : role === 'doctor' ? vDoctor() : S.tab === 'new' ? vNew() : S.tab === 'statement' ? vCenterStatement() : vCases();
 }
 
@@ -487,7 +605,8 @@ return;
     else if (b.id === 'li') { const r = await send('POST', '/auth/login', { email: v('em'), password: $('pw').value, portal: PORTAL[S.lr] }); S.user = r.user; S.tab = home(); S.msg = ''; S.open = null; await load(); R(); }
     else if (D.lo) { await send('POST', '/auth/logout'); S.user = null; S.lr = ''; S.tab = ''; S.open = null; S.msg = ''; R(); }
     else if (D.t) { S.tab = D.t; S.open = null; S.msg = ''; if (D.t === 'cases' || D.t === 'statement') await load(); R(); }
-    else if (D.rp) { S.open = S.open === +D.rp ? null : +D.rp; R(); }
+else if (D.ed) { S.open = +D.ed; S.edit = +D.ed; R(); }
+else if (D.rp) { S.open = S.open === +D.rp ? null : +D.rp; R(); }
     else if (D.dl) { await send('POST', `/exams/${D.dl}/deliver`); await load(); R(); }
     else if (b.id === 'pt') { document.body.classList.add('pr'); window.print(); document.body.classList.remove('pr'); }
     else if (b.id === 'pa') window.print();
@@ -496,6 +615,40 @@ return;
     else if (b.id === 'tp') { if (!$('rt').value) $('rt').value = 'الفحص:\nالمقارنة:\nالموجودات:\n\nالانطباع:\n'; }
     else if (b.id === 'sb') { if (!v('rt')) { $('rm').textContent = 'اكتب التقرير قبل الرفع.'; return; } await send('POST', `/doctor/cases/${D.id}/report`, { report: v('rt') }); await load(); R(); }
     else if (b.id === 'up') submitExam();
+      else if (b.id === 'cancelEdit') { S.edit = null; S.open = null; R(); }
+        else if (b.id === 'saveEdit') {
+  const e = S.list.find((x) => x.id === S.edit);
+  const q = [...document.querySelectorAll('#eExamList .chip[aria-pressed=true]')];
+
+  const regions = [...new Set(q.map((x) => x.dataset.g))];
+  const exams = q.map((x) => x.dataset.v);
+
+  if (v('en').trim().split(/\s+/).filter(Boolean).length < 3) {
+    $('eem').textContent = 'اكتب اسم المريض الثلاثي على الأقل';
+    return;
+  }
+
+  const data = {
+    patient_name: v('en'),
+    age: Number(v('ea')),
+    sex: v('eg'),
+    referrer: v('erf'),
+    modality: v('emd'),
+    regions: regions.length ? regions : (e.regions || []),
+    exam_names: exams.length ? exams : (e.exam_names || []),
+    protocol: v('epr'),
+    contrast: v('epr') === 'Normal' ? 'N' : v('ect'),
+    priority: v('epi'),
+    clinical_info: v('ecp')
+  };
+
+  await send('PUT', `/exams/${S.edit}`, data);
+  S.edit = null;
+  S.open = null;
+  S.msg = 'تم تعديل الفحص بنجاح';
+  await load();
+  R();
+}
     else if (b.id === 'ac') { S.msg = ''; await send('POST', '/admin/centers', { name: v('nc'), email: v('ce'), password: $('cw').value }); await load(); R(); }
     else if (b.id === 'ad') { await send('POST', '/admin/doctors', { name: v('nd'), email: v('de'), password: $('dw').value, specialty: v('ns') }); await load(); R(); }
     else if (D.act) { await send('PATCH', `/admin/users/${D.act}`, { active: D.v === '1' }); await load(); R(); }
@@ -524,8 +677,79 @@ if (t.id === 'caseDate') {
   R();
   return;
 }
+  if (t.id === 'emd') {
+  const box = $('eex');
+
+  box.innerHTML = `
+    <div class="g">
+      <div class="w">
+        <label>المنطقة</label>
+        <select id="erg">
+          <option value="">-- اختر المنطقة --</option>
+          ${(CATD[t.value] || []).map((g, i) => {
+            const a = g[0].split('|');
+            return `<option value="${i}">${E(a[0] + ' · ' + a[1])}</option>`;
+          }).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div id="eExamList" style="margin-top:14px">
+      <p class="msg">اختر المنطقة لعرض الفحوصات.</p>
+    </div>
+  `;
+
+  return;
+}
+
+if (t.id === 'erg') {
+  const modality = v('emd');
+  const group = (CATD[modality] || [])[Number(t.value)];
+  const box = $('eExamList');
+
+  if (!group) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const region = group[0];
+  const exams = group[1].split(';');
+
+  box.innerHTML = `
+    <div class="chips">
+      ${exams.map((x) => `
+        <button
+          type="button"
+          class="chip"
+          aria-pressed="false"
+          data-g="${E(region)}"
+          data-v="${E(x)}">
+          ${E(x)}
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  return;
+}
   if (t.id === 'md') {
   X();
+  return;
+}
+  if (t.id === 'epr') {
+  const ct = $('ect');
+
+  if (t.value === 'Normal') {
+    ct.value = 'N';
+    ct.disabled = true;
+  } else {
+    ct.disabled = false;
+
+    if (ct.value === 'N') {
+      ct.value = 'IV';
+    }
+  }
+
   return;
 }
   if (t.id === 'pr') {
@@ -581,7 +805,7 @@ if (t.id === 'caseDate') {
  if (t.id === 'pcs') { S.pc = +t.value; R(); }
 else if (t.id === 'mo' && t.value) act(async () => { S.month = t.value; S.stmt = await send('GET', '/admin/statement?month=' + S.month); R(); });
 else if (t.id === 'cmo' && t.value) act(async () => { S.month = t.value; S.stmt = await send('GET', '/exams/statement?month=' + S.month); R(); });
-else if (t.id === 'ff') { const z = 0; [...t.files].forEach((x) => { z += x.size; }); $('fc').textContent = `${t.files.length} ملف (${(z / 1048576).toFixed(1)} MB تقريباً)`; }
+else if (t.id === 'ff') { let z = 0; [...t.files].forEach((x) => { z += x.size; }); $('fc').textContent = `${t.files.length} ملف (${(z / 1048576).toFixed(1)} MB تقريباً)`; }
 });
 document.addEventListener('input', (ev) => {
   if (ev.target.id === 'caseSearch') {
