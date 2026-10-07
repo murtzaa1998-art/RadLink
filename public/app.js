@@ -518,64 +518,173 @@ function vLogin() {
       </div>
     </div>`;
 }
-function vNew() {
-  return `<div class="card"><h2>إضافة فحص جديد</h2>
+
+(function () {
+  const css = `
+  .card.nw{background:linear-gradient(160deg,#0a1b2e,#050e1a)!important;color:#e6f6ff!important;border:1px solid #22d3ee44!important;border-radius:22px!important;padding:30px!important;
+    box-shadow:0 20px 60px #0008,0 0 50px #22d3ee14!important;font-family:Cairo,Tahoma,Arial,sans-serif}
+  .nw h2{margin:0 0 6px;font-size:28px;color:#fff}
+  .nw .sub{color:#8fb3c7;margin:0 0 8px}
+  .nw h3{display:flex;align-items:center;gap:12px;margin:34px 0 14px;font-size:19px;color:#67e8f9;padding-top:6px;border-top:1px solid #22d3ee22}
+  .nw h3 b{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#22d3ee22;border:1px solid #22d3ee77;color:#fff;font-size:15px;box-shadow:0 0 14px #22d3ee44}
+  .nw .g{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+  .nw .g .w{grid-column:1/-1}
+  .nw label{display:block;margin:0 0 7px;color:#9fc3d6;font-size:14px}
+  .nw input,.nw select,.nw textarea{width:100%;padding:13px 15px;font:inherit;font-size:16px;color:#fff!important;background:#030a14b3!important;border:1px solid #22d3ee40;border-radius:12px;outline:none;transition:.2s}
+  .nw textarea{min-height:110px;resize:vertical}
+  .nw input:focus,.nw select:focus,.nw textarea:focus{border-color:#22d3ee;box-shadow:0 0 0 3px #22d3ee2e,0 0 22px #22d3ee33}
+  .nw select option{background:#06111f;color:#fff}
+  .nw input[type=file]{padding:20px;border:2px dashed #22d3ee55;background:#22d3ee0d!important;color:#9fc3d6!important;cursor:pointer}
+  .nw input[type=file]::file-selector-button{margin-inline-end:14px;padding:9px 16px;border:0;border-radius:9px;background:#22d3ee;color:#03121f;font:inherit;font-weight:700;cursor:pointer}
+  .nw .hid{position:absolute;opacity:0;height:0;width:0;pointer-events:none}
+  .nw .mts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+  .nw .mt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px;font:inherit;color:#e6f6ff;cursor:pointer;background:#0b1e3399;border:1px solid #22d3ee33;border-radius:16px;transition:.25s}
+  .nw .mt i{font-style:normal;font-size:34px;filter:drop-shadow(0 0 8px #22d3ee88)}
+  .nw .mt b{font-size:16px}.nw .mt small{color:#7fa5ba;letter-spacing:1px}
+  .nw .mt:hover{transform:translateY(-3px);border-color:#22d3ee;box-shadow:0 0 24px #22d3ee44}
+  .nw .mt.on{background:linear-gradient(160deg,#22d3ee33,#0b1e33);border-color:#67e8f9;box-shadow:0 0 30px #22d3ee66}
+  .nw .mt *{pointer-events:none}
+  .nw .bm{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:16px;border:1px solid #22d3ee22;border-radius:16px;background:#030a1480}
+  .nw .bm svg{width:170px;flex:none;margin-inline:auto}
+  .nw .bm [data-r]{fill:#22d3ee1c;stroke:#22d3ee77;stroke-width:1.5;cursor:pointer;transition:.2s}
+  .nw .bm [data-r]:hover{fill:#22d3ee55}
+  .nw .bm [data-r].on{fill:#22d3ee99;stroke:#fff;filter:drop-shadow(0 0 6px #22d3ee)}
+  .nw .bm-i{flex:1 1 220px;color:#9fc3d6;line-height:1.9}
+  .nw .bm-i b{color:#67e8f9;font-size:18px;display:block}
+  .nw #ex{min-height:70px;padding:14px;border:1px dashed #22d3ee44;border-radius:14px}
+  .nw #ex .hl{outline:2px solid #67e8f9;outline-offset:2px;border-radius:8px;background:#22d3ee22;box-shadow:0 0 16px #22d3ee66}
+  .nw .empty{color:#7fa5ba}
+  .nw .chips{display:flex;gap:12px;flex-wrap:wrap}
+  .nw .chip.big{flex:1 1 130px;padding:14px;font:inherit;font-size:17px;font-weight:700;color:#e6f6ff;cursor:pointer;background:#0b1e3399;border:1px solid #22d3ee44;border-radius:14px;transition:.2s}
+  .nw .chip[aria-pressed=true]{background:#22d3ee33;border-color:#67e8f9;box-shadow:0 0 22px #22d3ee55}
+  .nw .chip.stat[aria-pressed=true]{background:#fb718533;border-color:#fb7185;box-shadow:0 0 22px #fb718566;animation:nwp 1.4s infinite}
+  .nw .msg{color:#8fb3c7;margin-top:8px;font-size:14px}.nw .err{color:#fb7185;min-height:22px}
+  .nw progress.bar{width:100%;height:10px;margin-top:12px;accent-color:#22d3ee}
+  .nw .btn{width:100%;margin-top:18px;padding:17px;font:inherit;font-size:19px;font-weight:800;color:#03121f;cursor:pointer;border:0;border-radius:14px;background:linear-gradient(90deg,#22d3ee,#67e8f9);box-shadow:0 0 34px #22d3ee66;transition:.2s}
+  .nw .btn:hover{transform:translateY(-2px);box-shadow:0 0 50px #22d3eeaa}
+  @keyframes nwp{50%{box-shadow:0 0 36px #fb7185aa}}`;
+  if (!document.getElementById('nw-css')) { const s = document.createElement('style'); s.id = 'nw-css'; s.textContent = css; document.head.appendChild(s); }
+
+  const ICON = { XR: '🩻', CT: '🌀', MRI: '🧲', US: '🔊', MG: '🎀', FL: '💧' };
+  const REG = {   // مناطق الجسم + كلمات البحث (عربي/إنجليزي) داخل قائمة الفحوصات
+    head: ['رأس', 'دماغ', 'جمجمة', 'جيوب', 'عين', 'brain', 'head', 'skull', 'sinus', 'orbit'],
+    neck: ['رقبة', 'عنق', 'غدة', 'neck', 'thyroid', 'tmj'],
+    shoulder: ['كتف', 'shoulder', 'clavicle', 'ترقوة'],
+    chest: ['صدر', 'رئة', 'قلب', 'chest', 'lung', 'heart', 'thorax'],
+    breast: ['ثدي', 'breast', 'mammo'],
+    spine: ['عمود', 'فقر', 'سنسن', 'spine', 'lumbar', 'cervical', 'thoracic', 'sacr'],
+    abdomen: ['بطن', 'كبد', 'كلية', 'كلى', 'طحال', 'abdomen', 'liver', 'kidney', 'kub', 'pancrea'],
+    pelvis: ['حوض', 'مثانة', 'بروستات', 'رحم', 'pelvis', 'bladder', 'prostate', 'uter'],
+    arm: ['عضد', 'ساعد', 'مرفق', 'arm', 'elbow', 'humer', 'forearm'],
+    hand: ['يد', 'رسغ', 'أصابع', 'hand', 'wrist', 'finger'],
+    hip: ['ورك', 'hip'],
+    thigh: ['فخذ', 'femur', 'thigh'],
+    knee: ['ركبة', 'knee'],
+    leg: ['ساق', 'كاحل', 'قصبة', 'leg', 'tibia', 'ankle'],
+    foot: ['قدم', 'foot', 'feet', 'calcan']
+  };
+  const RN = { head: 'الرأس', neck: 'الرقبة', shoulder: 'الكتف', chest: 'الصدر', breast: 'الثدي', spine: 'العمود الفقري', abdomen: 'البطن', pelvis: 'الحوض', arm: 'الذراع', hand: 'اليد والرسغ', hip: 'الورك', thigh: 'الفخذ', knee: 'الركبة', leg: 'الساق والكاحل', foot: 'القدم' };
+
+  const body = `<svg viewBox="0 0 200 420">
+   <rect data-r="spine" x="96" y="70" width="8" height="150" rx="4"/>
+   <ellipse data-r="head" cx="100" cy="38" rx="24" ry="28"/><rect data-r="neck" x="90" y="64" width="20" height="18" rx="6"/>
+   <circle data-r="shoulder" cx="58" cy="92" r="15"/><circle data-r="shoulder" cx="142" cy="92" r="15"/>
+   <rect data-r="chest" x="70" y="80" width="60" height="58" rx="12"/>
+   <circle data-r="breast" cx="86" cy="108" r="9"/><circle data-r="breast" cx="114" cy="108" r="9"/>
+   <rect data-r="abdomen" x="72" y="140" width="56" height="46" rx="10"/><rect data-r="pelvis" x="70" y="188" width="60" height="36" rx="12"/>
+   <rect data-r="arm" x="34" y="110" width="18" height="70" rx="9"/><rect data-r="arm" x="148" y="110" width="18" height="70" rx="9"/>
+   <ellipse data-r="hand" cx="43" cy="196" rx="10" ry="15"/><ellipse data-r="hand" cx="157" cy="196" rx="10" ry="15"/>
+   <circle data-r="hip" cx="78" cy="236" r="13"/><circle data-r="hip" cx="122" cy="236" r="13"/>
+   <rect data-r="thigh" x="68" y="252" width="28" height="68" rx="12"/><rect data-r="thigh" x="104" y="252" width="28" height="68" rx="12"/>
+   <circle data-r="knee" cx="82" cy="330" r="12"/><circle data-r="knee" cx="118" cy="330" r="12"/>
+   <rect data-r="leg" x="71" y="343" width="22" height="46" rx="10"/><rect data-r="leg" x="107" y="343" width="22" height="46" rx="10"/>
+   <ellipse data-r="foot" cx="82" cy="402" rx="14" ry="8"/><ellipse data-r="foot" cx="118" cy="402" rx="14" ry="8"/></svg>`;
+
+  window.vNew = function vNew() {
+    return `<div class="card nw"><h2>إضافة فحص جديد</h2><p class="sub">أدخل بيانات المريض واختر الفحص المطلوب.</p>
 <h3><b>1</b>بيانات المريض</h3><div class="g"><div class="w"><label>اسم المريض الثلاثي أو الرباعي</label><input id="n" autocomplete="off"></div><div><label>العمر</label><input id="a" type="number" min="0" max="120"></div><div><label>الجنس</label><select id="g"><option>ذكر</option><option>أنثى</option></select></div><div><label>الطبيب المُرسِل <small>(اختياري)</small></label><input id="rf" placeholder="يمكن تركه فارغاً"></div></div>
 <h3><b>2</b>نوع التصوير</h3>
-<div class="g">
-  <div class="w">
-    <label>اختر نوع التصوير</label>
-    <select id="md">
-      <option value="">-- اختر نوع التصوير --</option>
-      ${TYPES.map((t) => `<option value="${t[0]}">${t[1]} · ${t[0]}</option>`).join('')}
-    </select>
-  </div>
-</div>
-<h3><b>3</b>المنطقة والفحص المطلوب</h3><div id="ex"><span class="empty">اختر نوع التصوير أولاً، ثم اختر الفحوصات المطلوبة (يمكن اختيار أكثر من فحص).</span></div>
-<h3><b>4</b>الصبغة والبروتوكول</h3><div class="g"><div>
-  <label>نوع الفحص</label>
-  <select id="pr">
-    <option value="Normal">فحص عادي بدون صبغة</option>
-    <option value="Contrast">فحص مع صبغة</option>
-    <option value="Oncology">فحص أورام</option>
-    <option value="Angiography">فحص Angio</option>
-  </select>
-</div>
+<div class="mts">${TYPES.map((t) => `<button type="button" class="mt" data-m="${t[0]}"><i>${ICON[t[0]] || '🩻'}</i><b>${t[1]}</b><small>${t[0]}</small></button>`).join('')}</div>
+<select id="md" class="hid" tabindex="-1" aria-hidden="true"><option value="">-- اختر نوع التصوير --</option>${TYPES.map((t) => `<option value="${t[0]}">${t[1]} · ${t[0]}</option>`).join('')}</select>
+<h3><b>3</b>المنطقة والفحص المطلوب</h3>
+<div class="bm">${body}<div class="bm-i"><b id="bmn">اضغط على منطقة من الجسم</b><span id="bmc">تتظلل الفحوصات المطابقة للمنطقة في القائمة أدناه حتى تختارها (يمكن اختيار أكثر من منطقة).</span></div></div>
+<div id="ex"><span class="empty">اختر نوع التصوير أولاً، ثم اختر الفحوصات المطلوبة (يمكن اختيار أكثر من فحص).</span></div>
+<h3><b>4</b>الصبغة والبروتوكول</h3><div class="g"><div><label>نوع الفحص</label><select id="pr"><option value="Normal">فحص عادي بدون صبغة</option><option value="Contrast">فحص مع صبغة</option><option value="Oncology">فحص أورام</option><option value="Angiography">فحص Angio</option></select></div>
+<div><label>الصبغة</label><select id="ct" disabled>${Object.keys(CONS).map((k) => `<option value="${k}">${CONS[k]}</option>`).join('')}</select></div></div>
+<h3><b>5</b>المعلومات السريرية والأولوية</h3><div class="g"><div class="w"><label>المشاكل والأعراض والتاريخ السريري</label><textarea id="cp"></textarea></div><div class="w"><label>إرفاق أوليات المريض أو ورقة الفحص (صور أو PDF)</label><input type="file" id="hf" multiple accept="image/*,.pdf"></div></div>
+<div class="chips" id="pi" data-s="1" style="margin-top:14px"><button type="button" class="chip big" data-v="R" aria-pressed="true">عادي</button><button type="button" class="chip big" data-v="U" aria-pressed="false">عاجل</button><button type="button" class="chip big stat" data-v="S" aria-pressed="false">طارئ STAT</button></div>
+<h3><b>6</b>رفع صور الفحص</h3><input type="file" id="ff" multiple><div class="msg" id="fc">DICOM أو PDF أو JPG، ويمكن رفع أكثر من ملف.</div><progress class="bar" id="pg" value="0" max="100" hidden></progress>
+<div class="msg err" id="fm"></div><button class="btn" id="up">إرسال للطبيب</button></div>`;
+  };
 
-<div>
-  <label>الصبغة</label>
-  <select id="ct" disabled>
-    ${Object.keys(CONS).map((k) => `<option value="${k}">${CONS[k]}</option>`).join('')}
-  </select>
-</div></div>
+  /* ---- سلوك التصميم (لا يغيّر منطقك الحالي) ---- */
+  function syncTiles() {
+    const md = document.getElementById('md'); if (!md) return;
+    document.querySelectorAll('.nw .mt').forEach((b) => b.classList.toggle('on', b.dataset.m === md.value));
+    document.querySelectorAll('.nw [data-r].on').forEach((e) => e.classList.remove('on'));
+    const n = document.getElementById('bmn'); if (n) n.textContent = 'اضغط على منطقة من الجسم';
+  }
+  function matches(r) {
+    const k = REG[r], out = [];
+    document.querySelectorAll('#ex label,#ex li,#ex .chip,#ex button,#ex option').forEach((el) => {
+      const t = el.textContent.toLowerCase(); if (k.some((w) => t.includes(w))) out.push(el);
+    });
+    return out;
+  }
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest && e.target.closest('.nw .mt');
+    if (t) { const md = document.getElementById('md'); md.value = t.dataset.m; md.dispatchEvent(new Event('change', { bubbles: true })); syncTiles(); return; }
+    const r = e.target.closest && e.target.closest('.nw [data-r]');
+    if (!r) return;
+    const k = r.dataset.r, on = !r.classList.contains('on');
+    document.querySelectorAll(`.nw [data-r="${k}"]`).forEach((x) => x.classList.toggle('on', on));
+    const found = matches(k); found.forEach((el) => el.classList.toggle('hl', on));
+    document.getElementById('bmn').textContent = RN[k];
+    document.getElementById('bmc').textContent = on
+      ? (found.length ? `${found.length} فحص مطابق ظُلّل بالقائمة أدناه.` : 'لا توجد فحوصات لهذه المنطقة ضمن نوع التصوير المختار.')
+      : 'تم إلغاء التحديد.';
+    if (on && found[0]) found[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  document.addEventListener('change', (e) => { if (e.target.id === 'md') syncTiles(); });
 
-<h3><b>5</b>المعلومات السريرية والأولوية</h3>
-<div class="g">
-  <div class="w">
-    <label>المشاكل والأعراض والتاريخ السريري</label>
-    <textarea id="cp"></textarea>
-  </div>
-  <div class="w">
-    <label>إرفاق أوليات المريض أو ورقة الفحص (صور أو PDF)</label>
-    <input type="file" id="hf" multiple accept="image/*,.pdf">
-  </div>
-</div>
-
-<div class="chips" id="pi" data-s="1" style="margin-top:12px">
-  <button type="button" class="chip big" data-v="R" aria-pressed="true">عادي</button>
-  <button type="button" class="chip big" data-v="U" aria-pressed="false">عاجل</button>
-  <button type="button" class="chip big stat" data-v="S" aria-pressed="false">طارئ STAT</button>
-</div>
-
-<h3><b>6</b>رفع صور الفحص</h3>
-<input type="file" id="ff" multiple>
-<div class="msg" id="fc">DICOM أو PDF أو JPG، ويمكن رفع أكثر من ملف.</div>
-<progress class="bar" id="pg" value="0" max="100" hidden></progress>
-
-<div class="msg err" id="fm"></div>
-<button class="btn" id="up">إرسال للطبيب</button></div>`;
-}
-
+  /* ---- رمز الوصول + ورقة الطباعة ---- */
+  window.genAccessCode = function () {   // احتياطي فقط: الأفضل أن يولّده السيرفر ويخزّنه
+    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', b = crypto.getRandomValues(new Uint8Array(12));
+    const s = Array.from(b, (x) => A[x % A.length]).join('');
+    return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8);
+  };
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  window.printPatientSheet = function (p) {
+    const base = window.RESULT_URL || (location.origin + location.pathname);
+    const url = base + '?r=' + encodeURIComponent(p.code);
+    const j = (v) => JSON.stringify(v).replace(/</g, '\\u003c');
+    const w = window.open('', '_blank', 'width=820,height=1050'); if (!w) return alert('اسمح بالنوافذ المنبثقة للطباعة');
+    w.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>ورقة المريض</title><style>
+    body{font-family:Cairo,Tahoma,Arial,sans-serif;margin:0;padding:32px;color:#0a1b2e}
+    .sh{max-width:700px;margin:auto;border:3px solid #0a1b2e;border-radius:20px;overflow:hidden}
+    .hd{background:#0a1b2e;color:#fff;padding:20px 26px;display:flex;justify-content:space-between;align-items:center}
+    .hd b{font-size:24px}.hd span{color:#67e8f9;letter-spacing:2px}
+    .bd{padding:26px}.row{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed #b8c7d3;font-size:18px}.row span{color:#5b7285;min-width:130px}
+    .cd{display:flex;gap:26px;align-items:center;justify-content:center;margin:26px 0 8px;flex-wrap:wrap}
+    .code{font:700 32px monospace;letter-spacing:4px;text-align:center;direction:ltr;padding:14px;border:2px dashed #0a1b2e;border-radius:12px;margin:10px 0}
+    .nt{background:#eef7fb;border-radius:12px;padding:14px 18px;line-height:2;font-size:15px}
+    #bc{display:block;margin:8px auto}</style></head><body><div class="sh">
+    <div class="hd"><b>منصة تقارير الأشعة</b><span>PATIENT RESULT CARD</span></div><div class="bd">
+    <div class="row"><span>اسم المريض</span><b>${esc(p.name)}</b></div>
+    <div class="row"><span>العمر / الجنس</span><b>${esc(p.age)} / ${esc(p.sex)}</b></div>
+    <div class="row"><span>رقم الحالة</span><b>${esc(p.caseId)}</b></div>
+    <div class="row"><span>نوع الفحص</span><b>${esc(p.modality)}</b></div>
+    <div class="row"><span>التاريخ</span><b>${new Date().toLocaleDateString('ar-IQ')}</b></div>
+    <div class="cd"><div id="qr"></div></div><div class="code">${esc(p.code)}</div><svg id="bc"></svg>
+    <div class="nt">لمشاهدة النتيجة بعد جاهزية التقرير: امسح رمز QR أو ادخل الكود أعلاه في صفحة النتائج.<br>احتفظ بهذه الورقة ولا تشاركها مع غيرك، فهي مفتاح الوصول لنتيجتك.</div>
+    </div></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"><\/script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"><\/script>
+    <script>onload=function(){try{var q=qrcode(0,'M');q.addData(${j(url)});q.make();document.getElementById('qr').innerHTML=q.createSvgTag(6,0)}catch(e){}
+    try{JsBarcode('#bc',${j(p.code)},{format:'CODE128',displayValue:false,height:46,width:2})}catch(e){}setTimeout(function(){print()},500)}<\/script></body></html>`);
+    w.document.close();
+  };
+})();
 function vCases() {
   const all = S.list;
   const o = all.find((e) => e.id === S.open);
