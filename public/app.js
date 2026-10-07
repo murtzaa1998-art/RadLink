@@ -68,11 +68,167 @@ async function load() {
 }
 
 /* ---------- الواجهات ---------- */
-function vLogin() {
-  if (!S.lr) return '<div class="card hero"><h2>مرحباً بك في المنصة</h2><p class="msg">اختر نوع الحساب للدخول.</p><div class="chips"><button class="chip big" data-lr="c">دخول المراكز والمستشفيات</button><button class="chip big" data-lr="d">دخول الأطباء</button><button class="chip big" data-lr="a">دخول الإدارة</button></div></div>';
-  const N = { c: 'المراكز والمستشفيات', d: 'الأطباء', a: 'الإدارة' }[S.lr];
-  return `<div class="card hero"><h2>دخول ${N}</h2><label>البريد الإلكتروني</label><input id="em" type="email" autocomplete="username"><label style="margin-top:12px">كلمة المرور</label><input id="pw" type="password" autocomplete="current-password"><div class="msg err" id="lm">${E(S.msg)}</div><button class="btn" id="li">دخول</button> <button class="alt" data-lr="">رجوع</button></div>`;
-}
+/* ===== واجهة دخول منصة الأشعة (CT) =====
+   1) استبدل دالة vLogin القديمة بهذا الملف كله (أو الصق محتواه مكانها).
+   2) لا تغيير مطلوب بباقي الكود: بقيت نفس data-lr و id (em, pw, lm, li) ونفس S و E.
+   3) لخلفية فيديو حقيقي: window.LOGIN_VIDEO = 'رابط الفيديو.mp4';  قبل التحميل. */
+
+(function () {
+  /* ---------- CSS ---------- */
+  const css = `
+  .lg{position:fixed;inset:0;z-index:50;overflow:auto;background:#030a14;color:#e6f6ff;font-family:Cairo,Tahoma,Arial,sans-serif;direction:rtl}
+  .lg *{box-sizing:border-box}
+  .lg-vid,#lgfx{position:fixed;inset:0;width:100%;height:100%;object-fit:cover}
+  .lg-vid{opacity:.35}
+  .lg-vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 35%,#030a14 100%)}
+  .lg-wrap{position:relative;min-height:100%;display:flex;align-items:center;justify-content:center;gap:56px;padding:40px 5vw;flex-wrap:wrap}
+  .lg-brand{flex:1 1 380px;max-width:560px}
+  .lg-logo{width:84px;height:84px;margin-bottom:20px;filter:drop-shadow(0 0 14px #22d3ee)}
+  .lg-logo .r{transform-origin:50% 50%;animation:lgspin 9s linear infinite}
+  .lg-brand h1{font-size:clamp(30px,4.4vw,52px);line-height:1.25;margin:0 0 14px;font-weight:800;
+    background:linear-gradient(90deg,#fff,#67e8f9 60%,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lg-brand p{font-size:18px;line-height:1.9;color:#9fc3d6;margin:0 0 24px}
+  .lg-tags{display:flex;gap:10px;flex-wrap:wrap}
+  .lg-tags span{padding:7px 16px;border:1px solid #22d3ee55;border-radius:999px;background:#22d3ee14;color:#67e8f9;font-size:14px;letter-spacing:1px;box-shadow:0 0 14px #22d3ee22 inset}
+  .lg-card{flex:0 1 430px;width:100%;padding:32px;border-radius:22px;background:linear-gradient(160deg,#0b1e33cc,#06111fcc);
+    background:rgba(8,22,38,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid #22d3ee44;box-shadow:0 0 0 1px #000,0 20px 70px #000a,0 0 60px #22d3ee22;position:relative;animation:lgin .8s ease both}
+  .lg-card::before{content:"";position:absolute;inset:0;border-radius:22px;padding:1px;pointer-events:none;
+    background:linear-gradient(120deg,#22d3ee,transparent 40%,transparent 60%,#818cf8);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.6}
+  .lg-card h2{margin:0 0 6px;font-size:26px;color:#fff}
+  .lg-card .msg{color:#9fc3d6;margin:0 0 20px;font-size:15px}
+  .lg .chips{display:flex;flex-direction:column;gap:12px}
+  .lg button.chip{display:flex;align-items:center;gap:14px;width:100%;padding:16px 18px;text-align:right;font:inherit;font-size:17px;font-weight:700;color:#e6f6ff;cursor:pointer;
+    background:linear-gradient(90deg,#22d3ee12,#0b1e3380);border:1px solid #22d3ee44;border-radius:14px;transition:.25s}
+  .lg button.chip:hover{transform:translateX(-6px);border-color:#22d3ee;box-shadow:0 0 26px #22d3ee44;background:linear-gradient(90deg,#22d3ee2a,#0b1e33)}
+  .lg button.chip i{font-style:normal;font-size:26px;width:46px;height:46px;display:grid;place-items:center;border-radius:12px;background:#22d3ee1c}
+  .lg button.chip small{display:block;font-weight:400;color:#8fb3c7;font-size:13px;margin-top:2px}
+  .lg button *{pointer-events:none}
+  .lg label{display:block;margin:0 0 7px;color:#9fc3d6;font-size:14px}
+  .lg input{width:100%;padding:14px 16px;font:inherit;font-size:16px;color:#fff;background:#030a14b3;border:1px solid #22d3ee44;border-radius:12px;outline:none;transition:.2s;direction:ltr;text-align:left}
+  .lg input:focus{border-color:#22d3ee;box-shadow:0 0 0 3px #22d3ee33,0 0 24px #22d3ee33}
+  .lg .err{color:#fb7185;min-height:22px;margin:12px 0 4px;font-size:14px}
+  .lg button.btn{width:100%;padding:15px;margin-top:6px;font:inherit;font-size:18px;font-weight:800;color:#03121f;cursor:pointer;border:0;border-radius:12px;
+    background:linear-gradient(90deg,#22d3ee,#67e8f9);box-shadow:0 0 30px #22d3ee66;transition:.2s}
+  .lg button.btn:hover{transform:translateY(-2px);box-shadow:0 0 46px #22d3eeaa}
+  .lg button.alt{width:100%;margin-top:12px;padding:12px;font:inherit;font-size:15px;color:#9fc3d6;background:transparent;border:1px solid #ffffff22;border-radius:12px;cursor:pointer;transition:.2s}
+  .lg button.alt:hover{color:#fff;border-color:#ffffff66}
+  .lg-snd{position:fixed;top:18px;left:18px;z-index:3;width:46px;height:46px;font-size:20px;cursor:pointer;color:#fff;border-radius:50%;background:#0b1e33cc;border:1px solid #22d3ee55;transition:.2s}
+  .lg-snd:hover{box-shadow:0 0 20px #22d3ee66}
+  @keyframes lgspin{to{transform:rotate(360deg)}}
+  @keyframes lgin{from{opacity:0;transform:translateY(26px) scale(.97)}to{opacity:1;transform:none}}
+  @media(max-width:760px){.lg-wrap{gap:28px;padding:70px 18px 30px}.lg-brand{text-align:center}.lg-tags{justify-content:center}.lg-logo{margin-inline:auto}.lg-card{padding:24px}}
+  @media(prefers-reduced-motion:reduce){.lg *{animation:none!important}}`;
+  if (!document.getElementById('lg-css')) {
+    const st = document.createElement('style'); st.id = 'lg-css'; st.textContent = css; document.head.appendChild(st);
+  }
+
+  /* ---------- الأصوات (مولَّدة بالكود، بدون ملفات) ---------- */
+  let ac = null, amb = null, sndOn = true;
+  try { sndOn = localStorage.getItem('lg-snd') !== '0'; } catch (e) {}
+  function ctx() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; }
+  function blip(f, d, type, v, f2) {
+    if (!sndOn) return; const a = ctx(); if (!a) return;
+    const o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+    g.gain.setValueAtTime(v || .08, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + d);
+  }
+  function startAmb() {   // همهمة جهاز المفراس
+    if (amb || !sndOn) return; const a = ctx(); if (!a) return;
+    const o = a.createOscillator(), o2 = a.createOscillator(), lfo = a.createOscillator(), lg = a.createGain(), g = a.createGain(), lp = a.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = 52; o2.type = 'sine'; o2.frequency.value = 104;
+    lp.type = 'lowpass'; lp.frequency.value = 260; lfo.frequency.value = 5.5; lg.gain.value = .012; g.gain.value = .03;
+    lfo.connect(lg).connect(g.gain); o.connect(lp); o2.connect(lp); lp.connect(g).connect(a.destination);
+    o.start(); o2.start(); lfo.start(); amb = { g, stop() { o.stop(); o2.stop(); lfo.stop(); } };
+  }
+  function stopAmb() { if (amb) { try { amb.g.gain.value = 0; amb.stop(); } catch (e) {} amb = null; } }
+  function paintSnd() { const b = document.getElementById('sndt'); if (b) b.textContent = sndOn ? '🔊' : '🔇'; }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('.lg button');
+    if (!b) return;
+    if (b.id === 'sndt') {
+      sndOn = !sndOn; try { localStorage.setItem('lg-snd', sndOn ? '1' : '0'); } catch (x) {}
+      paintSnd(); if (sndOn) { startAmb(); blip(880, .12, 'sine', .08); } else stopAmb(); return;
+    }
+    if (b.id === 'li') blip(520, .35, 'triangle', .1, 1040); else blip(760, .1, 'square', .04, 1100);
+    startAmb();
+  });
+  let lastHover = null;
+  document.addEventListener('pointerover', e => {
+    const b = e.target.closest && e.target.closest('.lg button');
+    if (b && b !== lastHover && b.id !== 'sndt') blip(1500, .04, 'sine', .015);
+    lastHover = b;
+  });
+
+  /* ---------- خلفية المفراس المتحركة ---------- */
+  function fx(c) {
+    const x = c.getContext('2d'); let w, h, t = 0;
+    const hu = Array.from({ length: 18 }, () => ({ x: Math.random(), y: Math.random(), v: Math.round(Math.random() * 2000 - 1000), s: .2 + Math.random() * .6 }));
+    function rs() { const d = devicePixelRatio || 1; w = c.clientWidth; h = c.clientHeight; c.width = w * d; c.height = h * d; x.setTransform(d, 0, 0, d, 0, 0); }
+    rs(); addEventListener('resize', rs);
+    const still = matchMedia('(prefers-reduced-motion:reduce)').matches;
+    function draw() {
+      if (!c.isConnected) return;
+      t += .012; x.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2, R = Math.min(w, h) * .42;
+      let g = x.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * .7); g.addColorStop(0, '#0a2540'); g.addColorStop(1, '#030a14');
+      x.fillStyle = g; x.fillRect(0, 0, w, h);
+      x.strokeStyle = '#22d3ee10'; x.lineWidth = 1;                       // شبكة
+      for (let i = 0; i < w; i += 48) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, h); x.stroke(); }
+      for (let j = 0; j < h; j += 48) { x.beginPath(); x.moveTo(0, j); x.lineTo(w, j); x.stroke(); }
+      [1, .8, .52].forEach((k, i) => {                                    // حلقات الجهاز
+        x.beginPath(); x.arc(cx, cy, R * k, 0, 7); x.lineWidth = i ? 1.5 : 3;
+        x.strokeStyle = i ? '#22d3ee33' : '#22d3ee77'; x.setLineDash(i == 1 ? [6, 10] : []); x.shadowColor = '#22d3ee'; x.shadowBlur = i ? 0 : 18; x.stroke();
+      });
+      x.setLineDash([]); x.shadowBlur = 0;
+      for (let i = 0; i < 90; i++) {                                      // علامات دوّارة
+        const a = i / 90 * 6.283 + t * .4, r1 = R * 1.04, r2 = R * (i % 5 ? 1.07 : 1.12);
+        x.beginPath(); x.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); x.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+        x.strokeStyle = i % 5 ? '#22d3ee44' : '#67e8f9aa'; x.lineWidth = 1.5; x.stroke();
+      }
+      const a0 = t * 1.6;                                                 // شعاع المسح
+      g = x.createRadialGradient(cx, cy, 0, cx, cy, R * .8); g.addColorStop(0, '#22d3ee00'); g.addColorStop(1, '#22d3ee55');
+      x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, R * .8, a0 - .6, a0); x.closePath(); x.fillStyle = g; x.fill();
+      const sy = ((t * 90) % (R * 1.6)) + cy - R * .8;                    // خط المسح الأفقي
+      x.fillStyle = '#67e8f9'; x.shadowColor = '#22d3ee'; x.shadowBlur = 20; x.fillRect(cx - R * .8, sy, R * 1.6, 2); x.shadowBlur = 0;
+      x.font = '12px monospace'; x.fillStyle = '#22d3ee66';               // أرقام HU
+      hu.forEach(p => { p.y -= p.s * .0006; if (p.y < 0) p.y = 1; x.fillText(p.v + ' HU', p.x * w, p.y * h); });
+      if (!still) requestAnimationFrame(draw);
+    }
+    draw();
+  }
+  function boot() {
+    const c = document.getElementById('lgfx');
+    if (c && !c.dataset.on) { c.dataset.on = 1; fx(c); }
+    paintSnd();
+  }
+  new MutationObserver(boot).observe(document.documentElement, { childList: true, subtree: true });
+
+  /* ---------- الدالة الأصلية بتصميم جديد ---------- */
+  window.vLogin = function vLogin() {
+    const vid = window.LOGIN_VIDEO ? `<video class="lg-vid" src="${window.LOGIN_VIDEO}" autoplay muted loop playsinline></video>` : '';
+    const logo = `<svg class="lg-logo" viewBox="0 0 100 100" fill="none" stroke="#22d3ee" stroke-width="3"><circle cx="50" cy="50" r="44" opacity=".4"/><g class="r"><circle cx="50" cy="50" r="34" stroke-dasharray="14 8"/></g><circle cx="50" cy="50" r="18" fill="#22d3ee22"/><path d="M50 32v36M32 50h36" stroke="#67e8f9"/></svg>`;
+    const brand = `<section class="lg-brand">${logo}<h1>منصة تقارير الأشعة والمفراس</h1><p>ارفع فحوصات الأشعة السينية والمفراس والرنين بأمان، ويكتب لك الأطباء المختصون تقاريرها بدقة وسرعة.</p><div class="lg-tags"><span>X-RAY</span><span>CT</span><span>MRI</span></div></section>`;
+    let card;
+    if (!S.lr) {
+      card = `<div class="lg-card"><h2>مرحباً بك في المنصة</h2><p class="msg">اختر نوع الحساب للدخول.</p><div class="chips">
+        <button class="chip big" data-lr="c"><i>🏥</i><span>دخول المراكز والمستشفيات<small>رفع الفحوصات ومتابعة التقارير</small></span></button>
+        <button class="chip big" data-lr="d"><i>🩺</i><span>دخول الأطباء<small>كتابة تقارير الأشعة</small></span></button>
+        <button class="chip big" data-lr="a"><i>🛡️</i><span>دخول الإدارة<small>إدارة المنصة والفواتير</small></span></button></div></div>`;
+    } else {
+      const N = { c: 'المراكز والمستشفيات', d: 'الأطباء', a: 'الإدارة' }[S.lr];
+      card = `<div class="lg-card"><h2>دخول ${N}</h2><p class="msg">أدخل بياناتك للمتابعة.</p>
+        <label>البريد الإلكتروني</label><input id="em" type="email" autocomplete="username">
+        <label style="margin-top:14px">كلمة المرور</label><input id="pw" type="password" autocomplete="current-password">
+        <div class="msg err" id="lm">${E(S.msg)}</div>
+        <button class="btn" id="li">دخول</button><button class="alt" data-lr="">رجوع</button></div>`;
+    }
+    return `<div class="lg">${vid}<canvas id="lgfx"></canvas><div class="lg-vig"></div><button type="button" id="sndt" class="lg-snd" aria-label="الصوت">🔊</button><div class="lg-wrap">${brand}${card}</div></div>`;
+  };
+})();
 
 function vNew() {
   return `<div class="card"><h2>إضافة فحص جديد</h2>
