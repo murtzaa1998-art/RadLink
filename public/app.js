@@ -110,7 +110,7 @@ const LOGIN_CSS = `
   inset:0;
   z-index:50;
   overflow:auto;
-  background:#030a14 url("/Futuristic%20Arabic%20Radiology%20Dashboard.png") center center / cover no-repeat;
+  background:#030a14 url("/Futuristic%20Medical%20Imaging%20Suite.png") center center / cover no-repeat;
   color:#e6f6ff;
   font-family:Cairo,Tahoma,Arial,sans-serif;
   direction:rtl
