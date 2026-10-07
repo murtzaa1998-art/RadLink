@@ -757,7 +757,7 @@ function R() {
   $('hp').textContent = u ? 'مرحباً، ' + u.name : '';
   $('nav').innerHTML = N.map((x) => `<button role="tab" aria-selected="${S.tab === x[0]}" data-t="${x[0]}">${x[1]}</button>`).join('') + (u ? '<button class="lo" data-lo="1">تسجيل الخروج</button>' : '');
   if (role === 'center' && S.edit) { $('app').innerHTML = vEditExam(); return; }
-  $('app').innerHTML = !u ? vLogin() : role === 'admin' ? vAdmin() : role === 'doctor' ? vDoctor() : S.tab === 'new' ? vNew() : S.tab === 'statement' ? vCenterStatement() : vCases();
+  $('app').innerHTML = !u ? window.vLogin() : role === 'admin' ? vAdmin() : role === 'doctor' ? vDoctor() : S.tab === 'new' ? vNew() : S.tab === 'statement' ? vCenterStatement() : vCases();
 }
 
 /* ---------- اختيار الفحوصات ---------- */
