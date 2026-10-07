@@ -794,12 +794,152 @@ async function downloadHospitalReportPDF() {
 
     const imageData = await new Promise((resolve, reject) => {
       const reader = new FileReader();
-
       reader.onload = () => resolve(reader.result);
       reader.onerror = reject;
-
       reader.readAsDataURL(blob);
     });
+
+    const exams = Array.isArray(o.exam_names)
+      ? o.exam_names.join('، ')
+      : (o.exam_names || '');
+
+    // طبقة خاصة للنصوص حتى يدعم العربي بصورة صحيحة
+    const canvas = document.createElement('canvas');
+    canvas.width = 1240;
+    canvas.height = 1754;
+
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000000';
+    ctx.textBaseline = 'top';
+
+    // العنوان
+    ctx.direction = 'ltr';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 32px Arial';
+    ctx.fillText('Radiology Report', 620, 355);
+
+    // معلومات المريض
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'right';
+    ctx.font = '24px Arial';
+
+    ctx.fillText(
+      `المريض: ${String(o.patient_name || '')}`,
+      1080,
+      430
+    );
+
+    ctx.fillText(
+      `رقم الحالة: ${String(o.case_no || '')}`,
+      610,
+      430
+    );
+
+    ctx.fillText(
+      `العمر والجنس: ${String(o.age || '')} - ${String(o.sex || '')}`,
+      1080,
+      480
+    );
+
+    ctx.fillText(
+      `الفحص: ${String(exams)}`,
+      610,
+      480
+    );
+
+    ctx.fillText(
+      `الطبيب المُرسل: ${String(o.referrer || '-')}`,
+      1080,
+      530
+    );
+
+    ctx.fillText(
+      `تاريخ التقرير: ${String(T(o.reported_at) || '')}`,
+      610,
+      530
+    );
+
+    // خط فاصل
+    ctx.strokeStyle = '#999999';
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.moveTo(160, 575);
+    ctx.lineTo(1080, 575);
+    ctx.stroke();
+
+    // كتابة التقرير مع تقسيم الأسطر
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'right';
+    ctx.font = '25px Arial';
+
+    const reportText = String(o.report || '');
+    const maxWidth = 920;
+    const lineHeight = 42;
+    let y = 625;
+
+    function drawWrappedText(text) {
+      const paragraphs = text.split('\n');
+
+      paragraphs.forEach((paragraph) => {
+        if (!paragraph.trim()) {
+          y += lineHeight;
+          return;
+        }
+
+        const words = paragraph.split(/\s+/);
+        let line = '';
+
+        words.forEach((word) => {
+          const testLine = line
+            ? line + ' ' + word
+            : word;
+
+          if (
+            ctx.measureText(testLine).width > maxWidth &&
+            line
+          ) {
+            ctx.fillText(line, 1080, y);
+            y += lineHeight;
+            line = word;
+          } else {
+            line = testLine;
+          }
+        });
+
+        if (line) {
+          ctx.fillText(line, 1080, y);
+          y += lineHeight;
+        }
+
+        y += 8;
+      });
+    }
+
+    drawWrappedText(reportText);
+
+    // اسم الطبيب القارئ
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 23px Arial';
+
+    ctx.fillText(
+      'الطبيب القارئ',
+      1080,
+      1450
+    );
+
+    ctx.font = '23px Arial';
+
+    ctx.fillText(
+      String(o.doctor_name || '-'),
+      1080,
+      1490
+    );
+
+    const textLayer = canvas.toDataURL('image/png');
 
     const { jsPDF } = window.jspdf;
 
@@ -809,7 +949,7 @@ async function downloadHospitalReportPDF() {
       format: 'a4'
     });
 
-    // فورمة المستشفى كخلفية A4 كاملة
+    // فورمة المستشفى
     doc.addImage(
       imageData,
       'JPEG',
@@ -819,84 +959,14 @@ async function downloadHospitalReportPDF() {
       297
     );
 
-    const exams = Array.isArray(o.exam_names)
-      ? o.exam_names.join('، ')
-      : (o.exam_names || '');
-
-    // عنوان التقرير
-    doc.setFontSize(17);
-    doc.text(
-      'Radiology Report',
-      105,
-      62,
-      { align: 'center' }
-    );
-
-    doc.setFontSize(10);
-
-    doc.text(
-      `Patient: ${String(o.patient_name || '')}`,
-      20,
-      76
-    );
-
-    doc.text(
-      `Case No: ${String(o.case_no || '')}`,
-      115,
-      76
-    );
-
-    doc.text(
-      `Age / Sex: ${String(o.age || '')} - ${String(o.sex || '')}`,
-      20,
-      84
-    );
-
-    doc.text(
-      `Exam: ${String(exams)}`,
-      115,
-      84
-    );
-
-    doc.text(
-      `Referrer: ${String(o.referrer || '-')}`,
-      20,
-      92
-    );
-
-    doc.text(
-      `Report Date: ${String(T(o.reported_at) || '')}`,
-      115,
-      92
-    );
-
-    // نص التقرير
-    doc.setFontSize(11);
-
-    const reportLines = doc.splitTextToSize(
-      String(o.report || ''),
-      170
-    );
-
-    doc.text(
-      reportLines,
-      20,
-      110
-    );
-
-    // الطبيب القارئ
-    doc.setFontSize(10);
-
-    doc.text(
-      'Reporting Doctor:',
-      20,
-      245
-    );
-
-    doc.text(
-      String(o.doctor_name || '-'),
-      20,
-      252
+    // النص العربي كطبقة صورة شفافة
+    doc.addImage(
+      textLayer,
+      'PNG',
+      0,
+      0,
+      210,
+      297
     );
 
     const safeCase = String(o.case_no || 'report')
@@ -913,8 +983,9 @@ async function downloadHospitalReportPDF() {
       'تعذر إنشاء ملف PDF. تأكد من فورمة المستشفى.'
     );
   }
-  }
+}
 function vCases() {
+  
   const all = S.list;
   const o = all.find((e) => e.id === S.open);
 
