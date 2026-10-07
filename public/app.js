@@ -67,7 +67,6 @@ async function load() {
   }
 }
 
-/* ---------- الواجهات ---------- */
 (function () {
   /* ---------- CSS ---------- */
   const css = `
