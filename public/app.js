@@ -575,7 +575,183 @@ function vNew() {
 <div class="msg err" id="fm"></div>
 <button class="btn" id="up">إرسال للطبيب</button></div>`;
 }
+function printHospitalReport() {
+  const o = S.list.find((e) => e.id === S.open);
 
+  if (!o || o.status < 4) {
+    alert('التقرير غير جاهز للطباعة');
+    return;
+  }
+
+  const centerName = (S.user && S.user.name) ? S.user.name : '';
+
+  // فورمة كل مستشفى/مركز
+  let formImage = '';
+
+  if (centerName.includes('المثنى')) {
+    formImage = '/almuthanna-report-form.jpg';
+  }
+
+  const w = window.open('', '_blank');
+
+  if (!w) {
+    alert('يرجى السماح بفتح نافذة الطباعة');
+    return;
+  }
+
+  const exams = Array.isArray(o.exam_names)
+    ? o.exam_names.join('، ')
+    : (o.exam_names || '');
+
+  w.document.write(`
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>تقرير ${E(exams)}</title>
+
+<style>
+@page {
+  size: A4;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 210mm;
+  min-height: 297mm;
+  font-family: Arial, sans-serif;
+}
+
+.report-page {
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+  overflow: hidden;
+}
+
+.hospital-form {
+  position: absolute;
+  inset: 0;
+  width: 210mm;
+  height: 297mm;
+  object-fit: fill;
+  z-index: 0;
+}
+
+.report-content {
+  position: relative;
+  z-index: 2;
+  padding: 58mm 18mm 38mm;
+  direction: rtl;
+}
+
+.report-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 8mm;
+}
+
+.patient-info {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 7mm;
+  font-size: 13px;
+}
+
+.patient-info td {
+  padding: 3mm 2mm;
+  border-bottom: 1px solid #999;
+}
+
+.label {
+  font-weight: bold;
+}
+
+.report-box {
+  direction: rtl;
+  text-align: right;
+  white-space: pre-wrap;
+  line-height: 1.9;
+  font-size: 14px;
+  min-height: 90mm;
+}
+
+.doctor {
+  margin-top: 10mm;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+@media print {
+  .report-page {
+    page-break-after: avoid;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="report-page">
+
+  ${formImage ? `<img class="hospital-form" src="${formImage}">` : ''}
+
+  <div class="report-content">
+
+    <div class="report-title">
+      Radiology Report
+    </div>
+
+    <table class="patient-info">
+      <tr>
+        <td><span class="label">المريض:</span> ${E(o.patient_name || '')}</td>
+        <td><span class="label">رقم الحالة:</span> ${E(o.case_no || '')}</td>
+      </tr>
+
+      <tr>
+        <td><span class="label">العمر والجنس:</span> ${E(String(o.age || ''))} - ${E(o.sex || '')}</td>
+        <td><span class="label">الفحص:</span> ${E(exams)}</td>
+      </tr>
+
+      <tr>
+        <td><span class="label">الطبيب المُرسل:</span> ${E(o.referrer || '-')}</td>
+        <td><span class="label">تاريخ التقرير:</span> ${E(T(o.reported_at))}</td>
+      </tr>
+    </table>
+
+    <div class="report-box">${E(o.report || '')}</div>
+
+    <div class="doctor">
+      <b>الطبيب القارئ</b><br>
+      ${E(o.doctor_name || '-')}
+    </div>
+
+  </div>
+</div>
+
+<script>
+window.onload = function () {
+  setTimeout(function () {
+    window.print();
+  }, 500);
+};
+<\/script>
+
+</body>
+</html>
+  `);
+
+  w.document.close();
+}
 function vCases() {
   const all = S.list;
   const o = all.find((e) => e.id === S.open);
@@ -1592,10 +1768,8 @@ document.addEventListener('click', (ev) => {
     }
 
     else if (b.id === 'pt') {
-      document.body.classList.add('pr');
-      window.print();
-      document.body.classList.remove('pr');
-    }
+  printHospitalReport();
+}
 
     else if (b.id === 'pa') {
       window.print();
