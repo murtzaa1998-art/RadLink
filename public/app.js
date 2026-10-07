@@ -1043,12 +1043,10 @@ function vCenterStatement() {
         </table>
       </div>
 
-      <h3>
-        المبلغ الكلي:
-        ${Number(s.total || 0).toLocaleString('ar-IQ')} د.ع
-      </h3>
+      
 
       <button id="pcst">طباعة الجرد</button>
+      <button class="alt" id="pdfst">📄 تحميل PDF للجرد</button>
     </div>
   `;
 }
@@ -1552,7 +1550,11 @@ document.addEventListener('click', (ev) => {
     else if (b.id === 'pcst') {
       window.print();
     }
-
+else if (b.id === 'pdfst') {
+  document.body.classList.add('pr');
+  window.print();
+  document.body.classList.remove('pr');
+}
     else if (D.op) {
       const r = await send(
         'POST',
