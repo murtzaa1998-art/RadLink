@@ -1052,121 +1052,58 @@ function vCenterStatement() {
 }
 async function downloadStatementPDF() {
   const s = S.stmt || {};
-  const centerName = (S.me && (S.me.center_name || S.me.name)) || 'المركز الطبي';
+  const centerName =
+    (S.me && (S.me.center_name || S.me.name)) ||
+    (S.centers && S.centers[S.pc] && S.centers[S.pc].name) ||
+    'Medical Center';
+
   const month = s.month || '';
 
-  const mods = Object.entries(s.by_modality || {})
-    .map(([k, n]) => `
-      <tr>
-        <td>${E(k)}</td>
-        <td>${n}</td>
-      </tr>
-    `)
-    .join('');
-
-  const html = `
-<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8">
-<title>الجرد الشهري - ${E(month)}</title>
-<style>
-  body{
-    font-family:Arial,Tahoma,sans-serif;
-    direction:rtl;
-    padding:35px;
-    color:#111827;
-  }
-  h1,h2{text-align:center;margin:6px 0}
-  .info{
-    margin:25px 0;
-    padding:15px;
-    border:1px solid #ddd;
-    border-radius:10px;
-  }
-  .summary{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    margin:20px 0;
-  }
-  .box{
-    border:1px solid #ddd;
-    padding:10px 15px;
-    border-radius:8px;
-  }
-  table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:20px;
-  }
-  th,td{
-    border:1px solid #ccc;
-    padding:10px;
-    text-align:center;
-  }
-  th{background:#f1f5f9}
-  .foot{
-    margin-top:35px;
-    text-align:center;
-    font-size:12px;
-    color:#64748b;
-  }
-</style>
-</head>
-<body>
-
-<h1>الجرد الشهري</h1>
-<h2>${E(centerName)}</h2>
-
-<div class="info">
-  <b>الشهر:</b> ${E(month)}
-</div>
-
-<div class="summary">
-  <div class="box">عدد الحالات: <b>${s.cases || 0}</b></div>
-  <div class="box">عدد الفحوصات: <b>${s.exams || 0}</b></div>
-  <div class="box">بدون صبغة: <b>${s.no_contrast || 0}</b></div>
-  <div class="box">مع صبغة: <b>${s.with_contrast || 0}</b></div>
-  <div class="box">Angio: <b>${s.angiography || 0}</b></div>
-  <div class="box">أورام: <b>${s.oncology || 0}</b></div>
-</div>
-
-<table>
-<thead>
-<tr>
-  <th>نوع التصوير</th>
-  <th>العدد</th>
-</tr>
-</thead>
-<tbody>
-${mods || '<tr><td colspan="2">لا توجد فحوصات لهذا الشهر</td></tr>'}
-</tbody>
-</table>
-
-<div class="foot">
-منصة قراءة الفحوصات الطبية
-</div>
-
-<script>
-window.onload = function(){
-  window.print();
-};
-<\/script>
-
-</body>
-</html>`;
-
-  const w = window.open('', '_blank');
-
-  if (!w) {
-    alert('يرجى السماح بالنوافذ المنبثقة لتحميل الجرد');
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('مكتبة PDF لم يتم تحميلها');
     return;
   }
 
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
+  const { jsPDF } = window.jspdf;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  doc.setFontSize(18);
+  doc.text('Monthly Statement', 105, 20, { align: 'center' });
+
+  doc.setFontSize(15);
+  doc.text(String(centerName), 105, 30, { align: 'center' });
+
+  doc.setFontSize(11);
+  doc.text(`Month: ${month}`, 105, 40, { align: 'center' });
+
+  doc.text(`Cases: ${s.cases || 0}`, 20, 55);
+  doc.text(`Exams: ${s.exams || 0}`, 20, 63);
+  doc.text(`Without Contrast: ${s.no_contrast || 0}`, 20, 71);
+  doc.text(`With Contrast: ${s.with_contrast || 0}`, 20, 79);
+  doc.text(`Angio: ${s.angiography || 0}`, 20, 87);
+  doc.text(`Oncology: ${s.oncology || 0}`, 20, 95);
+  doc.text(`Total: ${s.total || 0}`, 20, 103);
+
+  let y = 120;
+
+  Object.entries(s.by_modality || {}).forEach(([modality, count]) => {
+    doc.text(`${modality}: ${count}`, 20, y);
+    y += 8;
+  });
+
+  const safeName = String(centerName)
+    .replace(/[\\/:*?"<>|]/g, '')
+    .trim() || 'Medical-Center';
+
+  const safeMonth = String(month)
+    .replace(/[\\/:*?"<>|]/g, '-');
+
+  doc.save(`Statement-${safeName}-${safeMonth}.pdf`);
 }
 function vAdmin() {
   const C = S.centers[S.pc];
