@@ -589,7 +589,7 @@ function printHospitalReport() {
   let formImage = '';
 
   if (centerName.includes('المثنى')) {
-    formImage = '/almuthanna-report-form.jpg';
+    formImage = window.location.origin + '/almuthanna-report-form.jpg';
   }
 
   const w = window.open('', '_blank');
@@ -752,6 +752,168 @@ window.onload = function () {
 
   w.document.close();
 }
+async function downloadHospitalReportPDF() {
+  const o = S.list.find((e) => e.id === S.open);
+
+  if (!o || o.status < 4) {
+    alert('التقرير غير جاهز للتحميل');
+    return;
+  }
+
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('مكتبة PDF غير متوفرة');
+    return;
+  }
+
+  const centerName =
+    (S.user && S.user.name)
+      ? S.user.name
+      : '';
+
+  let formImage = '';
+
+  if (centerName.includes('المثنى')) {
+    formImage =
+      window.location.origin +
+      '/almuthanna-report-form.jpg';
+  }
+
+  if (!formImage) {
+    alert('لا توجد فورمة مضافة لهذا المركز حالياً');
+    return;
+  }
+
+  try {
+    const response = await fetch(formImage);
+
+    if (!response.ok) {
+      throw new Error('FORM_NOT_FOUND');
+    }
+
+    const blob = await response.blob();
+
+    const imageData = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+
+      reader.readAsDataURL(blob);
+    });
+
+    const { jsPDF } = window.jspdf;
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // فورمة المستشفى كخلفية A4 كاملة
+    doc.addImage(
+      imageData,
+      'JPEG',
+      0,
+      0,
+      210,
+      297
+    );
+
+    const exams = Array.isArray(o.exam_names)
+      ? o.exam_names.join('، ')
+      : (o.exam_names || '');
+
+    // عنوان التقرير
+    doc.setFontSize(17);
+    doc.text(
+      'Radiology Report',
+      105,
+      62,
+      { align: 'center' }
+    );
+
+    doc.setFontSize(10);
+
+    doc.text(
+      `Patient: ${String(o.patient_name || '')}`,
+      20,
+      76
+    );
+
+    doc.text(
+      `Case No: ${String(o.case_no || '')}`,
+      115,
+      76
+    );
+
+    doc.text(
+      `Age / Sex: ${String(o.age || '')} - ${String(o.sex || '')}`,
+      20,
+      84
+    );
+
+    doc.text(
+      `Exam: ${String(exams)}`,
+      115,
+      84
+    );
+
+    doc.text(
+      `Referrer: ${String(o.referrer || '-')}`,
+      20,
+      92
+    );
+
+    doc.text(
+      `Report Date: ${String(T(o.reported_at) || '')}`,
+      115,
+      92
+    );
+
+    // نص التقرير
+    doc.setFontSize(11);
+
+    const reportLines = doc.splitTextToSize(
+      String(o.report || ''),
+      170
+    );
+
+    doc.text(
+      reportLines,
+      20,
+      110
+    );
+
+    // الطبيب القارئ
+    doc.setFontSize(10);
+
+    doc.text(
+      'Reporting Doctor:',
+      20,
+      245
+    );
+
+    doc.text(
+      String(o.doctor_name || '-'),
+      20,
+      252
+    );
+
+    const safeCase = String(o.case_no || 'report')
+      .replace(/[\\/:*?"<>|]/g, '-');
+
+    doc.save(
+      `Radiology-Report-${safeCase}.pdf`
+    );
+
+  } catch (err) {
+    console.error(err);
+
+    alert(
+      'تعذر إنشاء ملف PDF. تأكد من فورمة المستشفى.'
+    );
+  }
+  
 function vCases() {
   const all = S.list;
   const o = all.find((e) => e.id === S.open);
@@ -989,10 +1151,14 @@ function vCases() {
         </p>
 
         <p class="np">
-          <button class="btn" id="pt">
-            طباعة التقرير للمريض
-          </button>
-        </p>
+  <button class="btn" id="pt">
+    🖨️ طباعة التقرير
+  </button>
+
+  <button class="alt" id="pdfreport">
+    📄 تحميل PDF
+  </button>
+</p>
       </div>
     `;
   }
@@ -1770,7 +1936,9 @@ document.addEventListener('click', (ev) => {
     else if (b.id === 'pt') {
   printHospitalReport();
 }
-
+else if (b.id === 'pdfreport') {
+  downloadHospitalReportPDF();
+}
     else if (b.id === 'pa') {
       window.print();
     }
