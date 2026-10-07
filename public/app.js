@@ -913,7 +913,7 @@ async function downloadHospitalReportPDF() {
       'تعذر إنشاء ملف PDF. تأكد من فورمة المستشفى.'
     );
   }
-  
+  }
 function vCases() {
   const all = S.list;
   const o = all.find((e) => e.id === S.open);
