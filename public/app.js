@@ -1711,6 +1711,39 @@ ${st.centers.map((s) =>
     <td>${fmt(s.total)}</td>
   </tr>`
 ).join('')}
+${st.centers.map((s) => `
+  <tr>
+    <td colspan="8">
+      <details>
+        <summary>📋 تفاصيل فحوصات ${E(s.center)}</summary>
+        <div class="tw">
+          <table>
+            <tr>
+              <th>اسم المريض</th>
+              <th>نوع التصوير</th>
+              <th>الفحص</th>
+              <th>نوع الفحص</th>
+              <th>الصبغة</th>
+              <th>المبلغ</th>
+              <th>التاريخ</th>
+            </tr>
+            ${(s.details || []).map((d) => `
+              <tr>
+                <td>${E(d.patient_name || '-')}</td>
+                <td>${E(d.modality || '-')}</td>
+                <td>${E((JSON.parse(d.exam_names || '[]')).join('، ') || '-')}</td>
+                <td>${E(d.protocol || '-')}</td>
+                <td>${E(d.contrast || '-')}</td>
+                <td>${fmt(d.price || 0)}</td>
+                <td>${E((d.reported_at || '').slice(0,10))}</td>
+              </tr>
+            `).join('')}
+          </table>
+        </div>
+      </details>
+    </td>
+  </tr>
+`).join('')}
 
 </table>
 </div>
