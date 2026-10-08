@@ -57,7 +57,7 @@ router.post('/', (req, res) => {
     if (!cfg.PRIORITIES.includes(b.priority)) return fail('الأولوية غير صالحة');
     if (!String(b.clinical_info || '').trim()) return fail('اكتب المشاكل والمعلومات السريرية');
     if (!study.length) return fail('أرفق صور الفحص');
-const specialty = String(b.specialty || 'أشعة').trim();
+const specialty = b.protocol === 'Oncology' ? 'أورام' : 'أشعة';
     const doctor = db.prepare(`
   SELECT u.id
   FROM users u
