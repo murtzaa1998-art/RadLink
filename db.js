@@ -21,6 +21,14 @@ CREATE TABLE IF NOT EXISTS users(
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS center_profiles(
+  center_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  logo_path TEXT,
+  report_form_path TEXT,
+  address TEXT,
+  phone TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS prices(
   center_id INTEGER NOT NULL REFERENCES users(id),
   modality TEXT NOT NULL,
