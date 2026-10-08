@@ -376,7 +376,7 @@ router.patch('/cases/:id/assign', (req, res) => {
   const doctorId = Number(req.body?.doctor_id);
 
   const exam = db.prepare(
-    'SELECT id, status FROM exams WHERE id=?'
+    'SELECT id, status, center_id FROM exams WHERE id=?'
   ).get(examId);
 
   if (!exam) {
@@ -394,7 +394,16 @@ router.patch('/cases/:id/assign', (req, res) => {
   if (!doctor) {
     return res.status(404).json({ error: 'الطبيب غير موجود أو حسابه معطل' });
   }
+const allowed = db.prepare(`
+  SELECT 1 FROM doctor_centers
+  WHERE doctor_id=? AND center_id=?
+`).get(doctorId, exam.center_id);
 
+if (!allowed) {
+  return res.status(403).json({
+    error: 'هذا الطبيب غير مخوّل لاستلام فحوصات هذا المستشفى'
+  });
+}
   db.prepare(
     'UPDATE exams SET doctor_id=? WHERE id=?'
   ).run(doctorId, examId);
