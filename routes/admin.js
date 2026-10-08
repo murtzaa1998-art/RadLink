@@ -195,6 +195,48 @@ router.patch('/users/:id', (req, res) => {
   if (password !== undefined) db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(bcrypt.hashSync(String(password), 10), id);
   res.json({ ok: true });
 });
+
+// تعديل معلومات حساب المستشفى/المركز أو الطبيب
+router.patch('/users/:id/info', (req, res) => {
+  const id = Number(req.params.id);
+
+  const user = db.prepare(
+    "SELECT * FROM users WHERE id=? AND role IN ('center','doctor')"
+  ).get(id);
+
+  if (!user) {
+    return res.status(404).json({ error: 'الحساب غير موجود' });
+  }
+
+  const { name, email, specialty } = req.body || {};
+
+  const newName = clean(name);
+  const newEmail = clean(email).toLowerCase();
+  const newSpecialty = clean(specialty);
+
+  if (!newName || !newEmail) {
+    return res.status(400).json({ error: 'الاسم والبريد الإلكتروني مطلوبان' });
+  }
+
+  const duplicate = db.prepare(
+    'SELECT id FROM users WHERE lower(email)=lower(?) AND id<>?'
+  ).get(newEmail, id);
+
+  if (duplicate) {
+    return res.status(400).json({ error: 'البريد الإلكتروني مستخدم بحساب آخر' });
+  }
+
+  db.prepare(
+    'UPDATE users SET name=?, email=?, specialty=? WHERE id=?'
+  ).run(
+    newName,
+    newEmail,
+    user.role === 'doctor' ? newSpecialty : user.specialty,
+    id
+  );
+
+  res.json({ ok: true });
+});
 // حذف حساب مستشفى/مركز أو طبيب
 router.delete('/users/:id', (req, res) => {
   const id = Number(req.params.id);
