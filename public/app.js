@@ -97,6 +97,9 @@ async function load() {
       send('GET', '/admin/settings'),
       send('GET', '/admin/statement?month=' + S.month)
     ]);
+    
+S.assignCases = await send('GET', '/admin/cases');
+
 
     if (S.pc >= S.centers.length) S.pc = 0;
   }
@@ -1771,6 +1774,40 @@ ${C
 </div>
 
 <div class="card">
+  <h2>🩺 توزيع الفحوصات على الأطباء</h2>
+  <p class="empty">اختار الفحص والطبيب المسؤول عن كتابة التقرير.</p>
+
+  <div class="g">
+    <div>
+      <label>الفحص</label>
+      <select id="assignExam">
+        
+<option value="">اختر الفحص</option>
+${(S.assignCases || []).filter(e => e.status < 4).map(e =>
+  `<option value="${e.id}">${E(e.case_no)} - ${E(e.patient_name)} - ${E(e.modality)}</option>`
+).join('')}
+
+      </select>
+    </div>
+
+    <div>
+      <label>الطبيب</label>
+      <select id="assignDoctor">
+        <option value="">اختر الطبيب</option>
+        ${S.doctors.filter(d => d.active).map(d =>
+          `<option value="${d.id}">${E(d.name)}</option>`
+        ).join('')}
+      </select>
+    </div>
+  </div>
+
+  <button class="btn" id="assignSave">
+    إسناد الفحص للطبيب
+  </button>
+  <div class="msg" id="assignMsg"></div>
+</div>
+
+<div class="card">
 <h2>الجرد الشهري</h2>
 
 <div class="g">
@@ -2330,6 +2367,24 @@ await send('PUT', `/admin/centers/${newCenter.id}/profile`, {
         alert('تم تغيير كلمة المرور');
       }
     }
+
+else if (b.id === 'assignSave') {
+  const examId = document.getElementById('assignExam').value;
+  const doctorId = document.getElementById('assignDoctor').value;
+
+  if (!examId || !doctorId) {
+    alert('يرجى اختيار الفحص والطبيب');
+    return;
+  }
+
+  await send('PATCH', `/admin/cases/${examId}/assign`, {
+    doctor_id: Number(doctorId)
+  });
+
+  alert('تم إسناد الفحص للطبيب بنجاح');
+  await load();
+  R();
+}
 
       else if (D.edituser) {
   const u = [...S.centers, ...S.doctors]
