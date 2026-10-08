@@ -267,7 +267,7 @@ router.patch('/users/:id/info', (req, res) => {
     return res.status(404).json({ error: 'الحساب غير موجود' });
   }
 
-  const { name, email, specialty } = req.body || {};
+  const { name, email, specialty, center_ids } = req.body || {};
 
   const newName = clean(name);
   const newEmail = clean(email).toLowerCase();
@@ -293,6 +293,38 @@ router.patch('/users/:id/info', (req, res) => {
     user.role === 'doctor' ? newSpecialty : user.specialty,
     id
   );
+  if (user.role === 'doctor' && center_ids !== undefined) {
+  if (
+    !Array.isArray(center_ids) ||
+    !center_ids.length ||
+    center_ids.some(x => !Number.isSafeInteger(x) || x <= 0) ||
+    new Set(center_ids).size !== center_ids.length
+  ) {
+    return res.status(400).json({ error: 'قائمة المستشفيات غير صالحة' });
+  }
+
+  const validCenters = db.prepare(
+    "SELECT id FROM users WHERE role='center' AND active=1"
+  ).all();
+
+  const allowed = new Set(validCenters.map(c => c.id));
+
+  if (center_ids.some(x => !allowed.has(x))) {
+    return res.status(400).json({ error: 'أحد المستشفيات غير موجود أو معطّل' });
+  }
+
+  db.transaction(() => {
+    db.prepare('DELETE FROM doctor_centers WHERE doctor_id=?').run(id);
+
+    const insert = db.prepare(
+      'INSERT INTO doctor_centers(doctor_id, center_id) VALUES(?, ?)'
+    );
+
+    for (const centerId of center_ids) {
+      insert.run(id, centerId);
+    }
+  })();
+}
 
   res.json({ ok: true });
 });
