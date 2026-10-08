@@ -1547,6 +1547,11 @@ function vAdmin() {
         </button>
         <button
   class="alt"
+  data-edituser="${u.id}">
+  ✏️ تعديل المعلومات
+</button>
+        <button
+  class="alt"
   data-deluser="${u.id}">
   🗑️ حذف الحساب
 </button>
@@ -2196,6 +2201,41 @@ await send('PUT', `/admin/centers/${newCenter.id}/profile`, {
         alert('تم تغيير كلمة المرور');
       }
     }
+
+      else if (D.edituser) {
+  const u = [...S.centers, ...S.doctors]
+    .find(x => String(x.id) === String(D.edituser));
+
+  if (!u) {
+    alert('الحساب غير موجود');
+    return;
+  }
+
+  const name = prompt('الاسم الجديد:', u.name || '');
+  if (name === null) return;
+
+  const email = prompt('البريد الإلكتروني الجديد:', u.email || '');
+  if (email === null) return;
+
+  let specialty = u.specialty || '';
+
+  if (u.role === 'doctor') {
+    const s = prompt('اختصاص الطبيب:', specialty);
+    if (s === null) return;
+    specialty = s;
+  }
+
+  await send(
+    'PATCH',
+    `/admin/users/${D.edituser}/info`,
+    { name, email, specialty }
+  );
+
+  alert('تم تعديل معلومات الحساب بنجاح');
+
+  await load();
+  R();
+}
 else if (D.deluser) {
   const ok = confirm('هل أنت متأكد من حذف هذا الحساب نهائياً؟');
 
