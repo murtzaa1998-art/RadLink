@@ -1562,7 +1562,16 @@ function vAdmin() {
 
 <label>كلمة المرور (8 أحرف على الأقل)</label>
 <input id="cw">
+<label>عنوان المستشفى / المركز</label>
+<input id="ca" placeholder="مثال: السماوة - شارع المستشفى">
 
+<label>رقم الهاتف</label>
+<input id="cph" placeholder="مثال: 07800000000">
+<label>لوغو المستشفى / المركز</label>
+<input id="clogo" type="file" accept="image/*">
+
+<label>فورمة التقرير</label>
+<input id="cform" type="file" accept="image/*">
 <div class="msg err" id="am1">${E(S.msg)}</div>
 
 <button class="btn" id="ac">إضافة</button>
@@ -2131,12 +2140,15 @@ else if (b.id === 'pdfst') {
     else if (b.id === 'ac') {
       S.msg = '';
 
-      await send('POST', '/admin/centers', {
+      const newCenter = await send('POST', '/admin/centers', {
         name: v('nc'),
         email: v('ce'),
         password: $('cw').value
       });
-
+await send('PUT', `/admin/centers/${newCenter.id}/profile`, {
+  address: v('ca'),
+  phone: v('cph')
+});
       await load();
       R();
     }
