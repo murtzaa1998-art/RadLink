@@ -1545,6 +1545,76 @@ if (Array.isArray(s.details) && s.details.length) {
 }
   doc.save(`Statement-${safeName}-${safeMonth}.pdf`);
 }
+function printAdminCenterStatement() {
+  const st = S.stmt || {};
+  const center = S.centers[S.pc];
+
+  if (!center || !Array.isArray(st.centers)) {
+    alert('لا توجد بيانات للجرد');
+    return;
+  }
+
+  const s = st.centers.find(x =>
+    String(x.center) === String(center.name)
+  );
+
+  if (!s) {
+    alert('لا توجد بيانات لهذا المستشفى');
+    return;
+  }
+
+  const old = document.body.innerHTML;
+
+  document.body.innerHTML = `
+    <div dir="rtl" style="font-family:Arial;padding:30px">
+      <h1 style="text-align:center">كشف الحساب الشهري</h1>
+      <h2 style="text-align:center">${E(center.name)}</h2>
+      <p style="text-align:center">الشهر: ${E(S.month)}</p>
+
+      <hr>
+
+      <h3>عدد الحالات: ${s.cases || 0}</h3>
+      <h3>بدون صبغة: ${s.no_contrast || 0}</h3>
+      <h3>مع صبغة: ${s.with_contrast || 0}</h3>
+      <h3>Angio: ${s.angiography || 0}</h3>
+      <h3>Oncology: ${s.oncology || 0}</h3>
+
+      <h2>تفاصيل الفحوصات</h2>
+
+      <table style="width:100%;border-collapse:collapse;text-align:center" border="1">
+        <tr>
+          <th>اسم المريض</th>
+          <th>نوع التصوير</th>
+          <th>الفحص</th>
+          <th>نوع الفحص</th>
+          <th>الصبغة</th>
+          <th>المبلغ</th>
+          <th>التاريخ</th>
+        </tr>
+
+        ${(s.details || []).map(d => `
+          <tr>
+            <td>${E(d.patient_name || '-')}</td>
+            <td>${E(d.modality || '-')}</td>
+            <td>${E((JSON.parse(d.exam_names || '[]')).join(' - ') || '-')}</td>
+            <td>${E(d.protocol || '-')}</td>
+            <td>${E(d.contrast || '-')}</td>
+            <td>${fmt(d.price || 0)}</td>
+            <td>${E((d.reported_at || '').slice(0,10))}</td>
+          </tr>
+        `).join('')}
+      </table>
+
+      <h2 style="margin-top:25px">
+        إجمالي المستحقات: ${fmt(s.total || 0)}
+      </h2>
+    </div>
+  `;
+
+  window.print();
+  document.body.innerHTML = old;
+  location.reload();
+}
 function vAdmin() {
   const C = S.centers[S.pc];
   const st = S.stmt;
@@ -2089,10 +2159,9 @@ document.addEventListener('click', (ev) => {
 else if (b.id === 'pdfreport') {
   downloadHospitalReportPDF();
 }
-    else if (b.id === 'pa') {
-      window.print();
-    }
-
+   else if (b.id === 'pa') {
+  printAdminCenterStatement();
+}
     else if (b.id === 'pcst') {
       window.print();
     }
