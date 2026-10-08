@@ -21,9 +21,14 @@ function createUser(res, r, { name, email, password, specialty }) {
     const id = db.prepare('INSERT INTO users(role,name,email,password_hash,specialty) VALUES(?,?,?,?,?)')
       .run(r, name, email, bcrypt.hashSync(password, 10), r === 'doctor' ? specialty : null).lastInsertRowid;
     if (r === 'center') {
-      const ins = db.prepare('INSERT INTO prices(center_id,modality,price) VALUES(?,?,?)');
-      for (const m of cfg.MODALITIES) ins.run(id, m, cfg.DEFAULT_PRICES[m]);
-    }
+  const ins = db.prepare('INSERT INTO prices(center_id,modality,price) VALUES(?,?,?)');
+  for (const m of cfg.MODALITIES) ins.run(id, m, cfg.DEFAULT_PRICES[m]);
+
+  db.prepare(`
+    INSERT OR IGNORE INTO center_profiles(center_id)
+    VALUES(?)
+  `).run(id);
+}
     return id;
   })();
   res.status(201).json({ id });
@@ -31,11 +36,65 @@ function createUser(res, r, { name, email, password, specialty }) {
 
 // ---- المراكز ----
 router.get('/centers', (req, res) => {
-  const rows = db.prepare("SELECT id,name,email,active FROM users WHERE role='center' ORDER BY id").all();
+  const rows = db.prepare(`
+  SELECT
+    u.id,
+    u.name,
+    u.email,
+    u.active,
+    cp.logo_path,
+    cp.report_form_path,
+    cp.address,
+    cp.phone
+  FROM users u
+  LEFT JOIN center_profiles cp ON cp.center_id = u.id
+  WHERE u.role='center'
+  ORDER BY u.id
+`).all();
   const pr = db.prepare('SELECT modality,price FROM prices WHERE center_id=?');
   res.json(rows.map((c) => ({ ...c, prices: Object.fromEntries(pr.all(c.id).map((p) => [p.modality, p.price])) })));
 });
 router.post('/centers', (req, res) => createUser(res, 'center', req.body || {}));
+router.put('/centers/:id/profile', (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!db.prepare("SELECT 1 FROM users WHERE id=? AND role='center'").get(id)) {
+    return res.status(404).json({ error: 'المستشفى أو المركز غير موجود' });
+  }
+
+  const b = req.body || {};
+
+  const logo_path = clean(b.logo_path);
+  const report_form_path = clean(b.report_form_path);
+  const address = clean(b.address);
+  const phone = clean(b.phone);
+
+  db.prepare(`
+    INSERT INTO center_profiles(
+      center_id,
+      logo_path,
+      report_form_path,
+      address,
+      phone,
+      updated_at
+    )
+    VALUES(?,?,?,?,?,datetime('now'))
+    ON CONFLICT(center_id) DO UPDATE SET
+      logo_path=excluded.logo_path,
+      report_form_path=excluded.report_form_path,
+      address=excluded.address,
+      phone=excluded.phone,
+      updated_at=datetime('now')
+  `).run(
+    id,
+    logo_path || null,
+    report_form_path || null,
+    address || null,
+    phone || null
+  );
+
+  res.json({ ok: true });
+});
 router.put('/centers/:id/prices', (req, res) => {
   const id = Number(req.params.id);
   if (!db.prepare("SELECT 1 FROM users WHERE id=? AND role='center'").get(id)) return res.status(404).json({ error: 'المركز غير موجود' });
