@@ -303,7 +303,7 @@ router.get('/statement', (req, res) => {
 // جلب جميع الفحوصات للإدارة لغرض توزيعها على الأطباء
 router.get('/cases', (req, res) => {
   const rows = db.prepare(`
-    SELECT id, case_no, patient_name, modality, status, doctor_id
+    SELECT id, patient_name, modality, status, doctor_id
     FROM exams
     ORDER BY created_at DESC
   `).all();
