@@ -2427,11 +2427,35 @@ else if (b.id === 'assignSave') {
     if (s === null) return;
     specialty = s;
   }
+let center_ids;
 
+if (u.role === 'doctor') {
+  const selected = prompt(
+    'اكتب أرقام المستشفيات المسموح للطبيب يقرأ فحوصاتها، وافصل بينها بفاصلة:\n' +
+    S.centers.map(c => `${c.id} - ${c.name}`).join('\n')
+  );
+
+  if (selected === null) return;
+
+  center_ids = [...new Set(
+    selected.split(',').map(x => Number(x.trim()))
+  )];
+
+  if (
+    !center_ids.length ||
+    center_ids.some(id =>
+      !Number.isInteger(id) ||
+      !S.centers.some(c => c.id === id)
+    )
+  ) {
+    alert('اختَر أرقام مستشفيات صحيحة');
+    return;
+  }
+}
   await send(
     'PATCH',
     `/admin/users/${D.edituser}/info`,
-    { name, email, specialty }
+    { name, email, specialty, center_ids }
   );
 
   alert('تم تعديل معلومات الحساب بنجاح');
