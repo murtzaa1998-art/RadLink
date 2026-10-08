@@ -184,7 +184,66 @@ router.put('/centers/:id/prices', (req, res) => {
 router.get('/doctors', (req, res) =>
   res.json(db.prepare("SELECT id,name,email,specialty,active FROM users WHERE role='doctor' ORDER BY id").all()));
 router.post('/doctors', (req, res) => createUser(res, 'doctor', req.body || {}));
+// عرض المستشفيات المخصصة لكل طبيب
+router.get('/doctors/:id/centers', (req, res) => {
+  const doctorId = Number(req.params.id);
 
+  const centers = db.prepare(`
+    SELECT center_id
+    FROM doctor_centers
+    WHERE doctor_id = ?
+  `).all(doctorId);
+
+  res.json({
+    center_ids: centers.map(c => c.center_id)
+  });
+});
+// حفظ المستشفيات المخصصة للطبيب
+router.put('/doctors/:id/centers', (req, res) => {
+  const doctorId = Number(req.params.id);
+  const centerIds = req.body?.center_ids;
+
+  const doctor = db.prepare(
+    "SELECT id FROM users WHERE id=? AND role='doctor'"
+  ).get(doctorId);
+
+  if (!doctor) {
+    return res.status(404).json({ error: 'الطبيب غير موجود' });
+  }
+
+  if (!Array.isArray(centerIds) ||
+      !centerIds.every(id => Number.isInteger(id) && id > 0)) {
+    return res.status(400).json({ error: 'قائمة المستشفيات غير صالحة' });
+  }
+
+  const uniqueIds = [...new Set(centerIds)];
+
+  const checkCenter = db.prepare(
+    "SELECT id FROM users WHERE id=? AND role='center'"
+  );
+
+  for (const id of uniqueIds) {
+    if (!checkCenter.get(id)) {
+      return res.status(400).json({ error: 'أحد المستشفيات غير موجود' });
+    }
+  }
+
+  db.transaction(() => {
+    db.prepare(
+      'DELETE FROM doctor_centers WHERE doctor_id=?'
+    ).run(doctorId);
+
+    const insert = db.prepare(
+      'INSERT INTO doctor_centers(doctor_id,center_id) VALUES(?,?)'
+    );
+
+    for (const id of uniqueIds) {
+      insert.run(doctorId, id);
+    }
+  })();
+
+  res.json({ ok: true });
+});
 // ---- تعطيل حساب أو تغيير كلمة المرور ----
 router.patch('/users/:id', (req, res) => {
   const id = Number(req.params.id);
