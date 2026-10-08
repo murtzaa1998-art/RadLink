@@ -57,11 +57,31 @@ router.post('/', (req, res) => {
     if (!cfg.PRIORITIES.includes(b.priority)) return fail('الأولوية غير صالحة');
     if (!String(b.clinical_info || '').trim()) return fail('اكتب المشاكل والمعلومات السريرية');
     if (!study.length) return fail('أرفق صور الفحص');
-
+const specialty = String(b.specialty || 'أشعة').trim();
+    const doctor = db.prepare(`
+  SELECT u.id
+  FROM users u
+  JOIN doctor_centers dc ON dc.doctor_id = u.id
+  WHERE u.role = 'doctor'
+    AND u.active = 1
+    AND u.specialty = ?
+    AND dc.center_id = ?
+  ORDER BY (
+    SELECT COUNT(*)
+    FROM exams e
+    WHERE e.doctor_id = u.id AND e.status < 4
+  ) ASC, u.id ASC
+  LIMIT 1
+`).get(specialty, req.user.id);
     const id = db.transaction(() => {
       const id = db.prepare(`INSERT INTO exams(center_id,patient_name,age,sex,referrer,modality,regions,exam_names,contrast,protocol,specialty,priority,clinical_info)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(req.user.id, name, age, b.sex, String(b.referrer || '').trim(), b.modality,
-        JSON.stringify(regions), JSON.stringify(exams), b.contrast, b.protocol, 'أشعة', b.priority, String(b.clinical_info).trim()).lastInsertRowid;
+        JSON.stringify(regions), JSON.stringify(exams), b.contrast, b.protocol, specialty, b.priority, String(b.clinical_info).trim()).lastInsertRowid;
+      if (doctor) {
+  db.prepare(
+    'UPDATE exams SET doctor_id=? WHERE id=?'
+  ).run(doctor.id, id);
+}
       const ins = db.prepare('INSERT INTO files(exam_id,kind,original_name,stored_name,mime,size) VALUES(?,?,?,?,?,?)');
       for (const kind of ['study', 'prior'])
         for (const f of (req.files && req.files[kind]) || [])
