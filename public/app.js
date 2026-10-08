@@ -1515,7 +1515,34 @@ async function downloadStatementPDF() {
 
   const safeMonth = String(month)
     .replace(/[\\/:*?"<>|]/g, '-');
+if (Array.isArray(s.details) && s.details.length) {
+  doc.addPage();
 
+  doc.setFontSize(16);
+  doc.text('Exam Details', 105, 20, { align: 'center' });
+
+  let dy = 35;
+
+  s.details.forEach((d, i) => {
+    if (dy > 265) {
+      doc.addPage();
+      dy = 20;
+    }
+
+    let exams = '-';
+    try {
+      exams = JSON.parse(d.exam_names || '[]').join(' - ') || '-';
+    } catch (_) {}
+
+    doc.setFontSize(10);
+    doc.text(`${i + 1}. Patient: ${d.patient_name || '-'}`, 15, dy);
+    doc.text(`Modality: ${d.modality || '-'} | Exam: ${exams}`, 15, dy + 6);
+    doc.text(`Type: ${d.protocol || '-'} | Contrast: ${d.contrast || '-'}`, 15, dy + 12);
+    doc.text(`Amount: ${d.price || 0} | Date: ${(d.reported_at || '').slice(0, 10)}`, 15, dy + 18);
+
+    dy += 28;
+  });
+}
   doc.save(`Statement-${safeName}-${safeMonth}.pdf`);
 }
 function vAdmin() {
