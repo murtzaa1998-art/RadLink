@@ -8,12 +8,12 @@ router.use(auth, role('doctor'));
 
 // الطارئ ثم العاجل ثم العادي، والحالات المنتهية في الآخر
 router.get('/cases', (req, res) => {
-  const rows = db.prepare(`SELECT * FROM exams WHERE specialty=?
-    ORDER BY (status>=4), CASE priority WHEN 'S' THEN 0 WHEN 'U' THEN 1 ELSE 2 END, created_at`).all(req.user.specialty);
+  const rows = db.prepare(`SELECT * FROM exams WHERE doctor_id=?
+  ORDER BY (status>=4), CASE priority WHEN 'S' THEN 0 WHEN 'U' THEN 1 ELSE 2 END, created_at`).all(req.user.id);
   res.json(rows.map((e) => view(e, 'doctor')));
 });
 
-const mine = (id, u) => db.prepare('SELECT * FROM exams WHERE id=? AND specialty=?').get(Number(id), u.specialty);
+const mine = (id, u) => db.prepare('SELECT * FROM exams WHERE id=? AND doctor_id=?').get(Number(id), u.id);
 
 // فتح الحالة: تتحول إلى «قيد القراءة» ويُسجَّل الطبيب ووقت البدء
 router.post('/cases/:id/open', (req, res) => {
