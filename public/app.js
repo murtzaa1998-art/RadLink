@@ -2406,7 +2406,7 @@ else if (b.id === 'assignSave') {
 }
 
       else if (D.edituser) {
-  const u = [...S.centers, ...S.doctors]
+  const u = [...S.centers.map(x => ({...x, role: 'center'})), ...S.doctors.map(x => ({...x, role: 'doctor'}))]
     .find(x => String(x.id) === String(D.edituser));
 
   if (!u) {
