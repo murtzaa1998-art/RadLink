@@ -2017,7 +2017,7 @@ function submitExam() {
     sex: v('g'),
     referrer: v('rf'),
     modality: m,
-    regions: JSON.stringify({
+    
     regions: JSON.stringify([
       ...new Set(q.map((x) => x.dataset.g))
     ]),
