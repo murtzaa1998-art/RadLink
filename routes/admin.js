@@ -1,9 +1,31 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const path = require('path');
 const db = require('../db');
 const cfg = require('../config');
 const { auth, role } = require('../middleware');
-
+const CENTER_UPLOAD_DIR = path.resolve(
+  process.env.UPLOAD_DIR || './uploads',
+  'centers'
+);
+require('fs').mkdirSync(CENTER_UPLOAD_DIR, { recursive: true });
+const centerUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, CENTER_UPLOAD_DIR),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+    }
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('يسمح برفع الصور فقط'));
+    }
+    cb(null, true);
+  }
+});
 router.use(auth, role('admin'));
 
 const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -95,6 +117,57 @@ router.put('/centers/:id/profile', (req, res) => {
 
   res.json({ ok: true });
 });
+router.post(
+  '/centers/:id/branding',
+  centerUpload.fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'report_form', maxCount: 1 }
+  ]),
+  (req, res) => {
+    const id = Number(req.params.id);
+
+    if (!db.prepare("SELECT 1 FROM users WHERE id=? AND role='center'").get(id)) {
+      return res.status(404).json({ error: 'المستشفى أو المركز غير موجود' });
+    }
+
+    const current = db.prepare(`
+      SELECT logo_path, report_form_path
+      FROM center_profiles
+      WHERE center_id=?
+    `).get(id) || {};
+
+    const logo = req.files?.logo?.[0];
+    const reportForm = req.files?.report_form?.[0];
+
+    const logoPath = logo
+      ? logo.filename
+      : current.logo_path || null;
+
+    const reportFormPath = reportForm
+      ? reportForm.filename
+      : current.report_form_path || null;
+
+    db.prepare(`
+      INSERT INTO center_profiles(
+        center_id,
+        logo_path,
+        report_form_path,
+        updated_at
+      )
+      VALUES(?,?,?,datetime('now'))
+      ON CONFLICT(center_id) DO UPDATE SET
+        logo_path=excluded.logo_path,
+        report_form_path=excluded.report_form_path,
+        updated_at=datetime('now')
+    `).run(id, logoPath, reportFormPath);
+
+    res.json({
+      ok: true,
+      logo_path: logoPath,
+      report_form_path: reportFormPath
+    });
+  }
+);
 router.put('/centers/:id/prices', (req, res) => {
   const id = Number(req.params.id);
   if (!db.prepare("SELECT 1 FROM users WHERE id=? AND role='center'").get(id)) return res.status(404).json({ error: 'المركز غير موجود' });
