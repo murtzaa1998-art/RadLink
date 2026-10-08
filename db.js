@@ -29,6 +29,11 @@ CREATE TABLE IF NOT EXISTS center_profiles(
   phone TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS doctor_centers(
+  doctor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  center_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY(doctor_id, center_id)
+);
 CREATE TABLE IF NOT EXISTS prices(
   center_id INTEGER NOT NULL REFERENCES users(id),
   modality TEXT NOT NULL,
