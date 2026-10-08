@@ -1545,6 +1545,11 @@ function vAdmin() {
           data-v="${u.active ? 0 : 1}">
           ${u.active ? 'تعطيل' : 'تفعيل'}
         </button>
+        <button
+  class="alt"
+  data-deluser="${u.id}">
+  🗑️ حذف الحساب
+</button>
       </span>
     </li>`;
 
@@ -2191,7 +2196,21 @@ await send('PUT', `/admin/centers/${newCenter.id}/profile`, {
         alert('تم تغيير كلمة المرور');
       }
     }
+else if (D.deluser) {
+  const ok = confirm('هل أنت متأكد من حذف هذا الحساب نهائياً؟');
 
+  if (!ok) return;
+
+  await send(
+    'DELETE',
+    `/admin/users/${D.deluser}`
+  );
+
+  alert('تم حذف الحساب بنجاح');
+
+  await load();
+  R();
+}
     else if (b.id === 'sp1') {
       const o = {};
 
