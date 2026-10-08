@@ -299,6 +299,18 @@ router.get('/statement', (req, res) => {
   });
   res.json({ month, centers: out, grand_total: out.reduce((a, s) => a + s.total, 0) });
 });
+
+// جلب جميع الفحوصات للإدارة لغرض توزيعها على الأطباء
+router.get('/cases', (req, res) => {
+  const rows = db.prepare(`
+    SELECT id, case_no, patient_name, modality, status, doctor_id
+    FROM exams
+    ORDER BY created_at DESC
+  `).all();
+
+  res.json(rows);
+});
+
 // توزيع الفحص على طبيب محدد من الإدارة
 router.patch('/cases/:id/assign', (req, res) => {
   const examId = Number(req.params.id);
