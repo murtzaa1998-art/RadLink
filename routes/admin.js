@@ -195,7 +195,27 @@ router.patch('/users/:id', (req, res) => {
   if (password !== undefined) db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(bcrypt.hashSync(String(password), 10), id);
   res.json({ ok: true });
 });
+// حذف حساب مستشفى/مركز أو طبيب
+router.delete('/users/:id', (req, res) => {
+  const id = Number(req.params.id);
 
+  const user = db.prepare(
+    "SELECT id, role FROM users WHERE id=? AND role IN ('center','doctor')"
+  ).get(id);
+
+  if (!user) {
+    return res.status(404).json({ error: 'الحساب غير موجود' });
+  }
+
+  try {
+    db.prepare('DELETE FROM users WHERE id=?').run(id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({
+      error: 'لا يمكن حذف الحساب لوجود بيانات مرتبطة به'
+    });
+  }
+});
 // ---- الإعدادات ----
 router.get('/settings', (req, res) => res.json({ contrast_fee: fee() }));
 router.put('/settings', (req, res) => {
