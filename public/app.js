@@ -534,6 +534,15 @@ function vNew() {
     </select>
   </div>
 </div>
+<div class="g">
+  <div class="w">
+    <label>اختصاص الطبيب المطلوب لقراءة الفحص</label>
+    <select id="sp" required>
+      <option value="">-- اختر الاختصاص --</option>
+      ${SPECS}
+    </select>
+  </div>
+</div>
 <h3><b>3</b>المنطقة والفحص المطلوب</h3><div id="ex"><span class="empty">اختر نوع التصوير أولاً، ثم اختر الفحوصات المطلوبة (يمكن اختيار أكثر من فحص).</span></div>
 <h3><b>4</b>الصبغة والبروتوكول</h3><div class="g"><div>
   <label>نوع الفحص</label>
@@ -2016,6 +2025,7 @@ function submitExam() {
     sex: v('g'),
     referrer: v('rf'),
     modality: m,
+    specialty: v('sp'),
     regions: JSON.stringify([
       ...new Set(q.map((x) => x.dataset.g))
     ]),
