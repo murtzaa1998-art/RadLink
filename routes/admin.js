@@ -272,17 +272,30 @@ router.get('/statement', (req, res) => {
   const month = clean(req.query.month) || new Date().toISOString().slice(0, 7);
   if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'الشهر بصيغة YYYY-MM' });
   const centers = db.prepare("SELECT id,name FROM users WHERE role='center' ORDER BY id").all();
-  const rows = db.prepare('SELECT center_id,modality,contrast,protocol,exam_names,price FROM exams WHERE status>=4 AND substr(reported_at,1,7)=?').all(month);
+  const rows = db.prepare("SELECT id,center_id,patient_name,modality,contrast,protocol,exam_names,price,reported_at FROM exams WHERE status>=4 AND substr(reported_at,1,7)=? ORDER BY reported_at DESC").all(month);
   const out = centers.map((c) => {
-    const s = { center_id: c.id, center: c.name, cases: 0, exams: 0, by_modality: {}, no_contrast: 0, with_contrast: 0, angiography: 0, oncology: 0, total: 0 };
+    const s = { center_id: c.id, center: c.name, cases: 0, exams: 0, by_modality: {}, no_contrast: 0, with_contrast: 0, angiography: 0, oncology: 0, total: 0, details: [] };
     for (const r of rows.filter((x) => x.center_id === c.id)) {
       s.cases++; s.exams += JSON.parse(r.exam_names).length; s.total += r.price || 0;
       s.by_modality[r.modality] = (s.by_modality[r.modality] || 0) + 1;
       if (r.contrast === 'N') s.no_contrast++; else s.with_contrast++;
       if (r.protocol === 'Angiography') s.angiography++;
-      if (r.protocol === 'Oncology/Staging') s.oncology++;
+      if (r.protocol === 'Oncology' || r.protocol === 'Oncology/Staging') s.oncology++;
+      s.details.push({
+  id: r.id,
+  patient_name: r.patient_name,
+  modality: r.modality,
+  exam_names: r.exam_names,
+  protocol: r.protocol,
+  contrast: r.contrast,
+  price: r.price || 0,
+  reported_at: r.reported_at
+});
+      
     }
+   s.details.sort((a, b) => String(b.reported_at || '').localeCompare(String(a.reported_at || '')));
     return s;
+    
   });
   res.json({ month, centers: out, grand_total: out.reduce((a, s) => a + s.total, 0) });
 });
