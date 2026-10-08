@@ -299,5 +299,35 @@ router.get('/statement', (req, res) => {
   });
   res.json({ month, centers: out, grand_total: out.reduce((a, s) => a + s.total, 0) });
 });
+// توزيع الفحص على طبيب محدد من الإدارة
+router.patch('/cases/:id/assign', (req, res) => {
+  const examId = Number(req.params.id);
+  const doctorId = Number(req.body?.doctor_id);
 
+  const exam = db.prepare(
+    'SELECT id, status FROM exams WHERE id=?'
+  ).get(examId);
+
+  if (!exam) {
+    return res.status(404).json({ error: 'الفحص غير موجود' });
+  }
+
+  if (exam.status >= 4) {
+    return res.status(400).json({ error: 'لا يمكن توزيع فحص مكتمل' });
+  }
+
+  const doctor = db.prepare(
+    "SELECT id FROM users WHERE id=? AND role='doctor' AND active=1"
+  ).get(doctorId);
+
+  if (!doctor) {
+    return res.status(404).json({ error: 'الطبيب غير موجود أو حسابه معطل' });
+  }
+
+  db.prepare(
+    'UPDATE exams SET doctor_id=? WHERE id=?'
+  ).run(doctorId, examId);
+
+  res.json({ ok: true });
+});
 module.exports = router;
