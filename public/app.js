@@ -1699,7 +1699,16 @@ ${S.centers.map(acc).join('')}
 
 <label>الاختصاص</label>
 <select id="ns">${L(SPECS)}</select>
-
+<label>المستشفيات المسموح للطبيب بقراءة فحوصاتها</label>
+<div id="doctorCenters" style="padding:12px;border:1px solid #ccc;border-radius:10px">
+  ${S.centers.map(c => `
+    <label style="display:block;margin:8px 0">
+      <input type="checkbox" class="doctor-center" value="${c.id}">
+      ${E(c.name)}
+    </label>
+  `).join('')}
+</div>
+<small>يمكن اختيار أكثر من مستشفى للطبيب</small>
 <label>البريد الإلكتروني</label>
 <input id="de" type="email">
 
@@ -2330,13 +2339,21 @@ await send('PUT', `/admin/centers/${newCenter.id}/profile`, {
     }
 
     else if (b.id === 'ad') {
-      await send('POST', '/admin/doctors', {
+      const newDoctor = await send('POST', '/admin/doctors', {
         name: v('nd'),
         email: v('de'),
         password: $('dw').value,
         specialty: v('ns')
       });
+const centerIds = [...document.querySelectorAll(
+  '#doctorCenters .doctor-center:checked'
+)].map(el => Number(el.value));
 
+await send(
+  'PUT',
+  `/admin/doctors/${newDoctor.id}/centers`,
+  { center_ids: centerIds }
+);
       await load();
       R();
     }
