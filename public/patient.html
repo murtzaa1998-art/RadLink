@@ -220,21 +220,72 @@ protocol.addEventListener('change',()=>{
 });
 
 document.getElementById('patientForm')
-.addEventListener('submit',(event)=>{
- event.preventDefault();
- const name=document.getElementById('name').value.trim();
- if(name.split(/\s+/).filter(Boolean).length<3){
-  alert('يرجى كتابة اسم المريض الثلاثي');
-  return;
- }
- if(protocol.value!=='Normal' && contrast.value==='N'){
-  alert('اختر نوع الصبغة المناسب');
-  return;
- }
- alert(
-  'الاستمارة مكتملة تجريبياً. '+
-  'لم يتم إرسال الطلب أو حفظ بياناتك أو رفع الملفات.'
- );
+.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const name = document.getElementById('name').value.trim();
+
+  if (name.split(/\s+/).filter(Boolean).length < 3) {
+    alert('يرجى كتابة اسم المريض الثلاثي');
+    return;
+  }
+
+  if (protocol.value !== 'Normal' && !['IV', 'Oral', 'IV+Oral'].includes(contrast.value)) {
+    alert('يرجى اختيار نوع الصبغة المناسب');
+    return;
+  }
+
+  const data = new FormData();
+  data.append('patient_name', name);
+  data.append('age', document.getElementById('age').value);
+  data.append('sex', document.getElementById('sex').value);
+  data.append('phone', document.getElementById('phone').value.trim());
+  data.append('modality', document.getElementById('modality').value);
+  data.append('regions', document.getElementById('region').value);
+  data.append('exam_names', document.getElementById('exam').value.trim());
+  data.append('protocol', protocol.value);
+  data.append('contrast', protocol.value === 'Normal' ? 'N' : contrast.value);
+  data.append('priority', document.getElementById('priority').value);
+  data.append('referrer', document.getElementById('referrer').value.trim());
+  data.append('clinical_info', document.getElementById('clinical').value.trim());
+
+  const files = document.getElementById('study').files;
+  for (const file of files) {
+    data.append('study', file);
+  }
+
+  button.disabled = true;
+  button.textContent = 'جاري إرسال الطلب...';
+
+  try {
+    const response = await fetch('/api/patient/requests', {
+      method: 'POST',
+      body: data
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'تعذر تسجيل الطلب');
+    }
+
+    alert(
+      'تم تسجيل طلب الفحص بنجاح.\n' +
+      'رقم الطلب: ' + result.request_id + '\n' +
+      'الطلب بانتظار تفعيل إجراءات الدفع والمراجعة.'
+    );
+
+    form.reset();
+    contrast.disabled = false;
+
+  } catch (error) {
+    alert('حدث خطأ: ' + error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'إرسال طلب الفحص';
+  }
 });
 </script>
 </body>
