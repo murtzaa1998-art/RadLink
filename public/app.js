@@ -480,7 +480,9 @@ function vLogin() {
               <small>إدارة المنصة والفواتير</small>
             </span>
           </button>
-          <a class="chip big" href="/patient.html" style="display:flex;text-decoration:none;color:inherit">
+          
+<a class="chip big" href="/patient.html" style="display:flex;align-items:center;text-decoration:none;color:#ffffff;background:rgba(8,42,65,.85);border:1px solid rgba(50,170,210,.25);border-radius:14px;padding:16px">
+
   <i>👤</i>
   <span>دخول المرضى
     <small>رفع الفحوصات ومتابعة التقارير</small>
