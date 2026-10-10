@@ -480,12 +480,12 @@ function vLogin() {
               <small>إدارة المنصة والفواتير</small>
             </span>
           </button>
-          <button class="chip big" type="button" onclick="window.location.href='/patient.html'">
+          <a class="chip big" href="/patient.html" style="display:flex;text-decoration:none;color:inherit">
   <i>👤</i>
   <span>دخول المرضى
     <small>رفع الفحوصات ومتابعة التقارير</small>
   </span>
-</button>
+</a>
         </div>
       </div>`;
   } else {
