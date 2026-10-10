@@ -100,7 +100,19 @@ CREATE TABLE IF NOT EXISTS patient_requests(
 );
 CREATE INDEX IF NOT EXISTS idx_patient_requests_phone
 ON patient_requests(phone);
+CREATE TABLE IF NOT EXISTS patient_request_files(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  request_id INTEGER NOT NULL
+    REFERENCES patient_requests(id) ON DELETE CASCADE,
+  original_name TEXT NOT NULL,
+  stored_name TEXT NOT NULL,
+  mime TEXT,
+  size INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 
+CREATE INDEX IF NOT EXISTS idx_patient_request_files
+ON patient_request_files(request_id);
 `);
 
 // قيم أولية: رسوم الصبغة + حساب الإدارة الأول
