@@ -77,6 +77,30 @@ CREATE TABLE IF NOT EXISTS files(
   size INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_files_exam ON files(exam_id);
+
+CREATE TABLE IF NOT EXISTS patient_requests(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  patient_name TEXT NOT NULL,
+  age INTEGER NOT NULL,
+  sex TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  modality TEXT NOT NULL,
+  regions TEXT NOT NULL,
+  exam_names TEXT NOT NULL,
+  contrast TEXT NOT NULL DEFAULT 'N',
+  protocol TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'R',
+  referrer TEXT,
+  clinical_info TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending_payment',
+  payment_status TEXT NOT NULL DEFAULT 'unpaid',
+  payment_reference TEXT,
+  exam_id INTEGER REFERENCES exams(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_patient_requests_phone
+ON patient_requests(phone);
+
 `);
 
 // قيم أولية: رسوم الصبغة + حساب الإدارة الأول
