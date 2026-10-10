@@ -28,6 +28,7 @@ app.use(cookieParser());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/exams', require('./routes/exams'));
+app.use('/api/patient', require('./routes/patient'));
 app.use('/api/doctor', require('./routes/doctor'));
 app.use('/api/files', require('./routes/files'));
 app.use('/api', (req, res) => res.status(404).json({ error: 'المسار غير موجود' }));
