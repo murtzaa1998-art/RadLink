@@ -2,58 +2,240 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>بوابة المرضى | RadLink</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Tahoma, Arial, sans-serif;
-      background: linear-gradient(135deg, #06162c, #103d62);
-      color: white;
-      display: grid;
-      place-items: center;
-      padding: 20px;
-    }
-    .panel {
-      width: 100%;
-      max-width: 520px;
-      padding: 28px;
-      background: #102a45;
-      border: 1px solid #28739a;
-      border-radius: 20px;
-    }
-    h1 { color: #65d8f5; }
-    p { line-height: 1.8; color: #c6dbe9; }
-    .item {
-      padding: 18px;
-      margin-top: 14px;
-      border: 1px solid #31688a;
-      border-radius: 12px;
-      background: #153653;
-    }
-    a { color: #7de4ff; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بوابة المرضى | RadLink</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;font-family:Tahoma,Arial,sans-serif;
+ background:linear-gradient(135deg,#06162c,#103d62);
+ color:#fff;min-height:100vh;padding:24px 14px
+}
+.container{max-width:850px;margin:auto}
+header{text-align:center;margin:15px 0 28px}
+h1{color:#64dbf7;margin-bottom:8px}
+p{color:#c4d9e8;line-height:1.8}
+.panel{
+ background:#102a45;border:1px solid #28739a;
+ border-radius:18px;padding:24px;margin-bottom:20px
+}
+h2{font-size:21px;color:#7de4ff;margin-top:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.field{margin-bottom:15px}
+label{display:block;margin-bottom:8px;font-size:14px}
+input,select,textarea{
+ width:100%;padding:12px;border-radius:9px;
+ border:1px solid #376585;background:#092039;
+ color:white;font:inherit
+}
+textarea{min-height:95px;resize:vertical}
+input[type=file]{padding:14px}
+button{
+ background:linear-gradient(90deg,#087fbc,#12b7dc);
+ border:0;border-radius:10px;color:white;
+ padding:14px 22px;font:inherit;font-weight:bold;
+ cursor:pointer;width:100%
+}
+button:disabled{opacity:.55;cursor:not-allowed}
+.note{
+ background:#163b54;padding:13px;border-radius:10px;
+ color:#d2e6f1;font-size:13px;line-height:1.8
+}
+a{color:#7de4ff}
+@media(max-width:600px){
+ .grid{grid-template-columns:1fr}
+ .panel{padding:17px}
+}
+</style>
 </head>
 <body>
-  <main class="panel">
-    <h1>بوابة المرضى</h1>
-    <p>أهلاً بك في منصة RadLink للتقارير الشعاعية.</p>
+<div class="container">
+<header>
+<h1>بوابة المرضى</h1>
+<p>منصة RadLink لطلب التقارير الشعاعية ومتابعتها</p>
+</header>
 
-    <section class="item">
-      <h3>رفع فحص جديد</h3>
-      <p>قريباً: إدخال بيانات المريض ورفع صور الفحص وطلب التقرير.</p>
-    </section>
+<section class="panel">
+<h2>رفع فحص جديد</h2>
+<p>املأ بياناتك ومعلومات الفحص لتهيئة طلب تقرير طبي.</p>
 
-    <section class="item">
-      <h3>متابعة تقريري</h3>
-      <p>قريباً: متابعة الطلب برقم الموبايل ورمز التحقق أو الباركود.</p>
-    </section>
+<form id="patientForm">
+<div class="grid">
+<div class="field">
+<label for="name">اسم المريض الثلاثي *</label>
+<input id="name" required minlength="5"
+ placeholder="الاسم الثلاثي">
+</div>
 
-    <p>الدفع الإلكتروني سيتوفر بعد ربط بوابة الدفع.</p>
-    <a href="/">العودة إلى الصفحة الرئيسية</a>
-  </main>
+<div class="field">
+<label for="age">العمر *</label>
+<input id="age" type="number" min="0" max="120" required>
+</div>
+
+<div class="field">
+<label for="sex">الجنس *</label>
+<select id="sex" required>
+<option value="">اختر الجنس</option>
+<option>ذكر</option><option>أنثى</option>
+</select>
+</div>
+
+<div class="field">
+<label for="phone">رقم الموبايل *</label>
+<input id="phone" type="tel" inputmode="tel"
+ placeholder="07XXXXXXXXX"
+ pattern="07[0-9]{9}" maxlength="11" required>
+</div>
+
+<div class="field">
+<label for="modality">نوع التصوير *</label>
+<select id="modality" required>
+<option value="">اختر نوع التصوير</option>
+<option value="XR">الأشعة العادية X-Ray</option>
+<option value="CT">المفراس CT</option>
+<option value="MRI">الرنين MRI</option>
+<option value="US">السونار Ultrasound</option>
+<option value="MG">تصوير الثدي Mammography</option>
+<option value="FL">التنظير الشعاعي Fluoroscopy</option>
+</select>
+</div>
+
+<div class="field">
+<label for="region">منطقة الفحص *</label>
+<select id="region" required>
+<option value="">اختر المنطقة</option>
+<option>الرأس والدماغ</option>
+<option>الوجه والرقبة</option>
+<option>الصدر</option>
+<option>البطن</option>
+<option>الحوض</option>
+<option>العمود الفقري</option>
+<option>الأطراف العلوية</option>
+<option>الأطراف السفلية</option>
+<option>الثدي</option>
+<option>أخرى</option>
+</select>
+</div>
+
+<div class="field">
+<label for="exam">اسم الفحص *</label>
+<input id="exam" required
+ placeholder="مثلاً CT Abdomen & Pelvis">
+</div>
+
+<div class="field">
+<label for="protocol">نوع الدراسة *</label>
+<select id="protocol" required>
+<option value="">اختر نوع الدراسة</option>
+<option value="Normal">بدون صبغة Normal</option>
+<option value="Contrast">مع صبغة Contrast</option>
+<option value="Oncology">أورام Oncology</option>
+<option value="Angiography">أوعية Angiography</option>
+</select>
+</div>
+
+<div class="field">
+<label for="contrast">نوع الصبغة *</label>
+<select id="contrast" required>
+<option value="">اختر</option>
+<option value="N">بدون صبغة</option>
+<option value="IV">صبغة وريدية IV</option>
+<option value="Oral">صبغة فموية Oral</option>
+<option value="IV+Oral">وريدية وفموية</option>
+</select>
+</div>
+
+<div class="field">
+<label for="priority">أولوية الفحص *</label>
+<select id="priority" required>
+<option value="">اختر الأولوية</option>
+<option value="N">اعتيادي</option>
+<option value="U">مستعجل</option>
+</select>
+</div>
+</div>
+
+<div class="field">
+<label for="referrer">الطبيب المُرسِل (اختياري)</label>
+<input id="referrer" placeholder="اسم الطبيب إن وجد">
+</div>
+
+<div class="field">
+<label for="clinical">المعلومات السريرية *</label>
+<textarea id="clinical" required
+ placeholder="اذكر سبب الفحص، الأعراض، والمعلومات الطبية المهمة"></textarea>
+</div>
+
+<div class="field">
+<label for="study">صور الفحص *</label>
+<input id="study" type="file" multiple required
+ accept=".jpg,.jpeg,.png,.pdf,.dcm,.zip">
+</div>
+
+<div class="note">
+الدفع الإلكتروني: قيد التجهيز.
+لن يتم إرسال الفحص أو حفظ البيانات بهذه النسخة التجريبية.
+</div>
+
+<div style="margin-top:18px">
+<button type="submit">معاينة الطلب التجريبي</button>
+</div>
+</form>
+</section>
+
+<section class="panel">
+<h2>متابعة تقريري</h2>
+<p>بعد تفعيل النظام، تتمكن من متابعة التقرير برقم الموبايل مع رمز تحقق آمن أو QR Code.</p>
+<div class="field">
+<label for="lookupPhone">رقم الموبايل</label>
+<input id="lookupPhone" type="tel"
+ placeholder="07XXXXXXXXX">
+</div>
+<button type="button" disabled>متابعة التقرير — قريباً</button>
+</section>
+
+<section class="panel">
+<h2>الدفع الإلكتروني</h2>
+<p>سيتم ربط بوابة دفع معتمدة لاحقاً. لا تدخل معلومات بطاقتك المصرفية حالياً.</p>
+</section>
+
+<p style="text-align:center">
+<a href="/">العودة إلى الصفحة الرئيسية</a>
+</p>
+</div>
+
+<script>
+const protocol=document.getElementById('protocol');
+const contrast=document.getElementById('contrast');
+
+protocol.addEventListener('change',()=>{
+ if(protocol.value==='Normal'){
+  contrast.value='N';
+  contrast.disabled=true;
+ }else{
+  contrast.disabled=false;
+  if(contrast.value==='N')contrast.value='';
+ }
+});
+
+document.getElementById('patientForm')
+.addEventListener('submit',(event)=>{
+ event.preventDefault();
+ const name=document.getElementById('name').value.trim();
+ if(name.split(/\s+/).filter(Boolean).length<3){
+  alert('يرجى كتابة اسم المريض الثلاثي');
+  return;
+ }
+ if(protocol.value!=='Normal' && contrast.value==='N'){
+  alert('اختر نوع الصبغة المناسب');
+  return;
+ }
+ alert(
+  'الاستمارة مكتملة تجريبياً. '+
+  'لم يتم إرسال الطلب أو حفظ بياناتك أو رفع الملفات.'
+ );
+});
+</script>
 </body>
 </html>
